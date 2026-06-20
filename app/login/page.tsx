@@ -1,43 +1,25 @@
-'use client'
-
-import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-
-export default function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
-
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-
-    if (error) {
-      setError('Correo o contraseña incorrectos')
-      setLoading(false)
-      return
-    }
-
-    window.location.href = '/dashboard'
-  }
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>
+}) {
+  const params = await searchParams
+  const hasError = !!params?.error
 
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--background)' }}>
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
-            style={{ backgroundColor: '#8b5e3c' }}>
+          <div
+            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
+            style={{ backgroundColor: '#8b5e3c' }}
+          >
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-              <path d="M8 24C8 24 6 20 6 16C6 12 8 8 16 8C24 8 26 12 26 16C26 20 24 24 24 24" stroke="#fdf8f3" strokeWidth="2" strokeLinecap="round"/>
-              <path d="M10 24H22" stroke="#fdf8f3" strokeWidth="2" strokeLinecap="round"/>
-              <path d="M12 28H20" stroke="#fdf8f3" strokeWidth="2" strokeLinecap="round"/>
-              <circle cx="16" cy="16" r="3" fill="#fdf8f3"/>
+              <path d="M8 24C8 24 6 20 6 16C6 12 8 8 16 8C24 8 26 12 26 16C26 20 24 24 24 24" stroke="#fdf8f3" strokeWidth="2" strokeLinecap="round" />
+              <path d="M10 24H22" stroke="#fdf8f3" strokeWidth="2" strokeLinecap="round" />
+              <path d="M12 28H20" stroke="#fdf8f3" strokeWidth="2" strokeLinecap="round" />
+              <circle cx="16" cy="16" r="3" fill="#fdf8f3" />
             </svg>
           </div>
           <h1 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>
@@ -54,16 +36,16 @@ export default function LoginPage() {
             Iniciar sesión
           </h2>
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form method="POST" action="/api/auth/login" className="space-y-4" id="login-form">
             <div>
               <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--foreground)' }}>
                 Correo electrónico
               </label>
               <input
                 type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+                name="email"
                 required
+                autoComplete="email"
                 placeholder="tu@correo.com"
                 className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition-all"
                 style={{ borderColor: 'var(--border)', background: 'var(--background)' }}
@@ -76,32 +58,48 @@ export default function LoginPage() {
               </label>
               <input
                 type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
+                name="password"
                 required
+                autoComplete="current-password"
                 placeholder="••••••••"
                 className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition-all"
                 style={{ borderColor: 'var(--border)', background: 'var(--background)' }}
               />
             </div>
 
-            {error && (
-              <p className="text-sm rounded-lg px-3 py-2.5" style={{ background: '#fef2f2', color: '#dc2626' }}>
-                {error}
+            {hasError && (
+              <p
+                className="text-sm rounded-lg px-3 py-2.5"
+                style={{ background: '#fef2f2', color: '#dc2626' }}
+              >
+                Correo o contraseña incorrectos
               </p>
             )}
 
             <button
               type="submit"
-              disabled={loading}
-              className="w-full rounded-lg py-2.5 text-sm font-semibold transition-opacity disabled:opacity-60"
+              id="login-btn"
+              className="w-full rounded-lg py-2.5 text-sm font-semibold transition-opacity"
               style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
             >
-              {loading ? 'Ingresando...' : 'Ingresar'}
+              Ingresar
             </button>
           </form>
         </div>
       </div>
+
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            document.getElementById('login-form').addEventListener('submit', function() {
+              var btn = document.getElementById('login-btn');
+              btn.disabled = true;
+              btn.textContent = 'Ingresando...';
+              btn.style.opacity = '0.6';
+            });
+          `,
+        }}
+      />
     </div>
   )
 }

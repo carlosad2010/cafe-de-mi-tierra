@@ -6,22 +6,21 @@ import { Profile } from '@/lib/types'
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
 
-  // getSession() decodifica el JWT localmente (sin llamada de red)
-  // El proxy ya verificó la sesión con getUser() antes de llegar aquí
   const { data: { session } } = await supabase.auth.getSession()
 
   if (!session) redirect('/login')
 
+  const userId = session.user.id
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('*')
-    .eq('id', session.user.id)
+    .eq('id', userId)
     .single()
 
-  // Si el perfil no existe, lo creamos automáticamente en lugar de redirigir
   if (!profile) {
     await supabase.from('profiles').insert({
-      id: session.user.id,
+      id: userId,
       email: session.user.email!,
       full_name: session.user.email!,
       role: 'seller',
@@ -29,7 +28,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     const { data: newProfile } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', session.user.id)
+      .eq('id', userId)
       .single()
 
     if (!newProfile) redirect('/login')

@@ -1,52 +1,26 @@
-import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function proxy(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request })
+const PROJECT_REF = 'ggtmdtmkiabqfkehxtqc'
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          )
-          supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
+function hasValidSession(request: NextRequest): boolean {
+  const cookies = request.cookies.getAll()
+  return cookies.some(c => c.name.startsWith(`sb-${PROJECT_REF}-auth-token`))
+}
 
-  const { data: { session } } = await supabase.auth.getSession()
-  const user = session?.user ?? null
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const isPublic = pathname.startsWith('/login') || pathname.startsWith('/auth') || pathname.startsWith('/api')
+  const authenticated = hasValidSession(request)
 
-  // Helper: redirect preservando las cookies de sesión de Supabase
-  function redirectWithCookies(url: URL) {
-    const res = NextResponse.redirect(url)
-    supabaseResponse.cookies.getAll().forEach(({ name, value, ...rest }) => {
-      res.cookies.set(name, value, rest as any)
-    })
-    return res
+  if (!authenticated && !isPublic) {
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  if (!user && !pathname.startsWith('/login') && !pathname.startsWith('/auth')) {
-    return redirectWithCookies(new URL('/login', request.url))
+  if (authenticated && pathname === '/') {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  if (user && pathname === '/') {
-    return redirectWithCookies(new URL('/dashboard', request.url))
-  }
-
-  return supabaseResponse
+  return NextResponse.next()
 }
 
 export const config = {
