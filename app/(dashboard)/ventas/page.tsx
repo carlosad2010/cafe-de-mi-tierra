@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { SalesClient } from './SalesClient'
 
+export const dynamic = 'force-dynamic'
+
 export default async function SalesPage() {
   const supabase = await createClient()
 
@@ -18,7 +20,8 @@ export default async function SalesPage() {
   ])
 
   const sortedProducts = (products ?? []).sort((a: any, b: any) =>
-    (a.presentation?.orden ?? 99) - (b.presentation?.orden ?? 99) || a.type.localeCompare(b.type)
+    (a.presentation?.orden ?? 99) - (b.presentation?.orden ?? 99) ||
+    (a.tipo?.nombre ?? a.type ?? '').localeCompare(b.tipo?.nombre ?? b.type ?? '')
   )
 
   return (
