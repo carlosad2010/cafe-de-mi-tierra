@@ -83,7 +83,7 @@ export function SalesClient({
       order_id: order.id,
       product_id: i.product.id,
       product_name: i.product.name,
-      product_presentation: i.product.presentation,
+      product_presentation: i.product.presentation?.nombre ?? '',
       product_type: i.product.type,
       quantity: i.quantity,
       unit_price: i.product.sale_price,
@@ -290,7 +290,7 @@ export function SalesClient({
                       {cart.map(item => (
                         <tr key={item.product.id}>
                           <td className="px-3 py-2" style={{ color: 'var(--foreground)' }}>
-                            {item.product.presentation} {item.product.type}
+                            {item.product.presentation?.nombre} {item.product.type}
                           </td>
                           <td className="px-3 py-2" style={{ color: 'var(--muted-foreground)' }}>{formatCOP(item.product.sale_price)}</td>
                           <td className="px-3 py-2">

@@ -10,14 +10,22 @@ export type Profile = {
   updated_at: string
 }
 
-export type Presentation = '45g' | '250g' | '500g'
+export type Presentation = {
+  id: string
+  nombre: string
+  activa: boolean
+  orden: number
+  created_at: string
+}
+
 export type CoffeeType = 'grano' | 'molido'
 
 export type Product = {
   id: string
   name: string
   description: string | null
-  presentation: Presentation
+  presentation_id: string
+  presentation?: Presentation
   type: CoffeeType
   cost_price: number
   sale_price: number

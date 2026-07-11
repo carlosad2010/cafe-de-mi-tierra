@@ -10,14 +10,21 @@ export default async function SalesPage() {
       .select('*, customer:customers(full_name, phone, email), seller:profiles(full_name), items:order_items(*, product:products(name))')
       .order('created_at', { ascending: false })
       .limit(100),
-    supabase.from('products').select('*').eq('active', true).order('presentation').order('type'),
+    supabase
+      .from('products')
+      .select('*, presentation:presentations(id, nombre, activa, orden)')
+      .eq('active', true),
     supabase.from('customers').select('*').eq('active', true).order('full_name'),
   ])
+
+  const sortedProducts = (products ?? []).sort((a: any, b: any) =>
+    (a.presentation?.orden ?? 99) - (b.presentation?.orden ?? 99) || a.type.localeCompare(b.type)
+  )
 
   return (
     <SalesClient
       initialOrders={orders ?? []}
-      products={products ?? []}
+      products={sortedProducts}
       customers={customers ?? []}
     />
   )

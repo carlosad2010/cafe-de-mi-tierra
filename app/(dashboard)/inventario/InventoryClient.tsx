@@ -69,7 +69,7 @@ export function InventoryClient({
 
     const { data: newMovements } = await supabase
       .from('inventory_movements')
-      .select('*, product:products(name, presentation, type), creator:profiles(full_name)')
+      .select('*, product:products(name, presentation:presentations(nombre), type), creator:profiles(full_name)')
       .order('created_at', { ascending: false })
       .limit(50)
 
@@ -112,7 +112,7 @@ export function InventoryClient({
               return (
                 <tr key={p.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium" style={{ color: 'var(--foreground)' }}>{p.name}</td>
-                  <td className="px-4 py-3"><span className="px-2 py-0.5 rounded-full text-xs" style={{ background: 'var(--secondary)', color: 'var(--primary)' }}>{p.presentation}</span></td>
+                  <td className="px-4 py-3"><span className="px-2 py-0.5 rounded-full text-xs" style={{ background: 'var(--secondary)', color: 'var(--primary)' }}>{p.presentation?.nombre}</span></td>
                   <td className="px-4 py-3 capitalize" style={{ color: 'var(--muted-foreground)' }}>{p.type}</td>
                   <td className="px-4 py-3 font-bold" style={{ color: low ? '#dc2626' : '#16a34a' }}>{p.stock}</td>
                   <td className="px-4 py-3" style={{ color: 'var(--muted-foreground)' }}>{p.min_stock}</td>

@@ -2,25 +2,27 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Product } from '@/lib/types'
+import { Product, Presentation } from '@/lib/types'
 import { formatCOP, calcMargin, calcProfit } from '@/lib/utils'
 import { Plus, Pencil, Package, TrendingUp } from 'lucide-react'
 
-const PRESENTATIONS = ['45g', '250g', '500g'] as const
 const TYPES = ['grano', 'molido'] as const
 
 type ProductForm = {
-  name: string; description: string; presentation: import('@/lib/types').Presentation
+  name: string; description: string; presentation_id: string
   type: import('@/lib/types').CoffeeType; cost_price: string; sale_price: string
   stock: string; min_stock: string; sku: string; active: boolean
 }
 
 const EMPTY_FORM: ProductForm = {
-  name: '', description: '', presentation: '45g', type: 'grano',
+  name: '', description: '', presentation_id: '', type: 'grano',
   cost_price: '', sale_price: '', stock: '', min_stock: '5', sku: '', active: true,
 }
 
-export function ProductsClient({ initialProducts }: { initialProducts: Product[] }) {
+export function ProductsClient({ initialProducts, presentations }: {
+  initialProducts: Product[]
+  presentations: Presentation[]
+}) {
   const [products, setProducts] = useState(initialProducts)
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Product | null>(null)
@@ -30,7 +32,7 @@ export function ProductsClient({ initialProducts }: { initialProducts: Product[]
 
   function openCreate() {
     setEditing(null)
-    setForm(EMPTY_FORM)
+    setForm({ ...EMPTY_FORM, presentation_id: presentations[0]?.id ?? '' })
     setError('')
     setShowModal(true)
   }
@@ -39,7 +41,7 @@ export function ProductsClient({ initialProducts }: { initialProducts: Product[]
     setEditing(p)
     setForm({
       name: p.name, description: p.description ?? '',
-      presentation: p.presentation, type: p.type,
+      presentation_id: p.presentation_id, type: p.type,
       cost_price: String(p.cost_price), sale_price: String(p.sale_price),
       stock: String(p.stock), min_stock: String(p.min_stock),
       sku: p.sku ?? '', active: p.active,
@@ -57,7 +59,7 @@ export function ProductsClient({ initialProducts }: { initialProducts: Product[]
     const payload = {
       name: form.name,
       description: form.description || null,
-      presentation: form.presentation,
+      presentation_id: form.presentation_id,
       type: form.type,
       cost_price: Number(form.cost_price),
       sale_price: Number(form.sale_price),
@@ -126,7 +128,7 @@ export function ProductsClient({ initialProducts }: { initialProducts: Product[]
                 <td className="px-4 py-3">
                   <span className="px-2 py-0.5 rounded-full text-xs font-medium"
                     style={{ background: 'var(--secondary)', color: 'var(--primary)' }}>
-                    {p.presentation}
+                    {p.presentation?.nombre}
                   </span>
                 </td>
                 <td className="px-4 py-3 capitalize" style={{ color: 'var(--muted-foreground)' }}>{p.type}</td>
@@ -183,8 +185,8 @@ export function ProductsClient({ initialProducts }: { initialProducts: Product[]
 
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Presentación">
-                  <select value={form.presentation} onChange={e => setForm(f => ({ ...f, presentation: e.target.value as any }))} className="input-field">
-                    {PRESENTATIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                  <select value={form.presentation_id} onChange={e => setForm(f => ({ ...f, presentation_id: e.target.value }))} className="input-field">
+                    {presentations.map(pr => <option key={pr.id} value={pr.id}>{pr.nombre}</option>)}
                   </select>
                 </Field>
                 <Field label="Tipo">

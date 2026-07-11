@@ -47,13 +47,33 @@ create trigger on_auth_user_created
   for each row execute procedure public.handle_new_user();
 
 -- ============================================================
+-- PRESENTACIONES (lookup table, administrable desde la UI)
+-- ============================================================
+create table public.presentations (
+  id uuid primary key default uuid_generate_v4(),
+  nombre text not null unique,
+  activa boolean not null default true,
+  orden integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table public.presentations enable row level security;
+create policy "Authenticated users can manage presentations"
+  on public.presentations for all
+  using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
+
+insert into public.presentations (nombre, orden) values
+  ('45g', 1), ('250g', 2), ('500g', 3);
+
+-- ============================================================
 -- PRODUCTOS
 -- ============================================================
 create table public.products (
   id uuid primary key default uuid_generate_v4(),
   name text not null,
   description text,
-  presentation text not null check (presentation in ('45g', '250g', '500g')),
+  presentation_id uuid not null references public.presentations(id) on delete restrict,
   type text not null check (type in ('grano', 'molido')),
   cost_price numeric(12,2) not null default 0,
   sale_price numeric(12,2) not null default 0,
@@ -264,18 +284,28 @@ create or replace view public.daily_sales as
   where status = 'completado'
   group by date_trunc('day', created_at);
 
--- Vista: productos con stock bajo
+-- Vista: productos con stock bajo (incluye nombre de presentación como string)
 create or replace view public.low_stock_products as
-  select * from public.products
-  where stock <= min_stock and active = true;
+  select
+    p.id, p.name, p.presentation_id, p.type, p.stock, p.min_stock,
+    p.active, p.sku, p.cost_price, p.sale_price, p.description,
+    p.created_at, p.updated_at,
+    pr.nombre as presentation
+  from public.products p
+  join public.presentations pr on pr.id = p.presentation_id
+  where p.stock <= p.min_stock and p.active = true;
 
 -- ============================================================
 -- DATOS INICIALES: Productos
 -- ============================================================
-insert into public.products (name, description, presentation, type, cost_price, sale_price, stock, min_stock, sku) values
+insert into public.products (name, description, presentation_id, type, cost_price, sale_price, stock, min_stock, sku)
+select name, description, pr.id, type, cost_price, sale_price, stock, min_stock, sku
+from (values
   ('Café de mi Tierra Grano 45g',   'Café colombiano selecto en grano', '45g',  'grano',  3500,  7000,  50, 10, 'CMT-G-45'),
   ('Café de mi Tierra Grano 250g',  'Café colombiano selecto en grano', '250g', 'grano',  16000, 28000, 30, 5,  'CMT-G-250'),
   ('Café de mi Tierra Grano 500g',  'Café colombiano selecto en grano', '500g', 'grano',  28000, 50000, 20, 5,  'CMT-G-500'),
   ('Café de mi Tierra Molido 45g',  'Café colombiano selecto molido',   '45g',  'molido', 3800,  7500,  50, 10, 'CMT-M-45'),
   ('Café de mi Tierra Molido 250g', 'Café colombiano selecto molido',   '250g', 'molido', 17000, 30000, 30, 5,  'CMT-M-250'),
-  ('Café de mi Tierra Molido 500g', 'Café colombiano selecto molido',   '500g', 'molido', 30000, 54000, 20, 5,  'CMT-M-500');
+  ('Café de mi Tierra Molido 500g', 'Café colombiano selecto molido',   '500g', 'molido', 30000, 54000, 20, 5,  'CMT-M-500')
+) as v(name, description, nombre, type, cost_price, sale_price, stock, min_stock, sku)
+join public.presentations pr on pr.nombre = v.nombre;
