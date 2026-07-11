@@ -73,18 +73,10 @@ create table public.products (
 
 alter table public.products enable row level security;
 
-create policy "Authenticated users can read products"
-  on public.products for select
-  using (auth.role() = 'authenticated');
-
-create policy "Admins can manage products"
+create policy "Authenticated users can manage products"
   on public.products for all
-  using (
-    exists (
-      select 1 from public.profiles p
-      where p.id = auth.uid() and p.role = 'admin'
-    )
-  );
+  using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
 
 -- ============================================================
 -- CLIENTES
