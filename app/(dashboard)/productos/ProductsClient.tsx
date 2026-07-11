@@ -68,10 +68,10 @@ export function ProductsClient({ initialProducts }: { initialProducts: Product[]
     }
 
     if (editing) {
-      const { data, error: err } = await supabase
-        .from('products').update(payload).eq('id', editing.id).select().single()
+      const { error: err } = await supabase
+        .from('products').update(payload).eq('id', editing.id)
       if (err) { setError(err.message); setSaving(false); return }
-      setProducts(prev => prev.map(p => p.id === editing.id ? data : p))
+      setProducts(prev => prev.map(p => p.id === editing.id ? { ...p, ...payload } : p))
     } else {
       const { data, error: err } = await supabase
         .from('products').insert(payload).select().single()
@@ -85,9 +85,9 @@ export function ProductsClient({ initialProducts }: { initialProducts: Product[]
 
   async function toggleActive(p: Product) {
     const supabase = createClient()
-    const { data } = await supabase
-      .from('products').update({ active: !p.active }).eq('id', p.id).select().single()
-    if (data) setProducts(prev => prev.map(x => x.id === p.id ? data : x))
+    const { error } = await supabase
+      .from('products').update({ active: !p.active }).eq('id', p.id)
+    if (!error) setProducts(prev => prev.map(x => x.id === p.id ? { ...x, active: !x.active } : x))
   }
 
   const saleP = Number(form.sale_price)

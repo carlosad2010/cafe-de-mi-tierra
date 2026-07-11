@@ -35,9 +35,9 @@ export function UsersClient({ initialProfiles }: { initialProfiles: Profile[] })
 
   async function toggleActive(p: Profile) {
     const supabase = createClient()
-    const { data } = await supabase
-      .from('profiles').update({ active: !p.active }).eq('id', p.id).select().single()
-    if (data) setProfiles(prev => prev.map(x => x.id === p.id ? data : x))
+    const { error } = await supabase
+      .from('profiles').update({ active: !p.active }).eq('id', p.id)
+    if (!error) setProfiles(prev => prev.map(x => x.id === p.id ? { ...x, active: !x.active } : x))
   }
 
   return (

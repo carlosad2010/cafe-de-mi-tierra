@@ -70,10 +70,10 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
     }
 
     if (editing) {
-      const { data, error: err } = await supabase
-        .from('customers').update(payload).eq('id', editing.id).select().single()
+      const { error: err } = await supabase
+        .from('customers').update(payload).eq('id', editing.id)
       if (err) { setError(err.message); setSaving(false); return }
-      setCustomers(prev => prev.map(c => c.id === editing.id ? data : c))
+      setCustomers(prev => prev.map(c => c.id === editing.id ? { ...c, ...payload } : c))
     } else {
       const { data, error: err } = await supabase
         .from('customers').insert(payload).select().single()
