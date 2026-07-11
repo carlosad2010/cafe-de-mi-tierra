@@ -10,7 +10,7 @@ const DOC_TYPES: DocumentType[] = ['CC', 'NIT', 'CE', 'PPN', 'otro']
 const EMPTY_FORM = {
   full_name: '', email: '', phone: '',
   document_type: 'CC' as DocumentType, document_number: '',
-  address: '', city: '', notes: '', active: true,
+  address: '', city: '', contacto: '', telefono_contacto: '', notes: '', active: true,
 }
 
 export function CustomersClient({ initialCustomers }: { initialCustomers: Customer[] }) {
@@ -41,7 +41,9 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
     setForm({
       full_name: c.full_name, email: c.email ?? '', phone: c.phone ?? '',
       document_type: c.document_type ?? 'CC', document_number: c.document_number ?? '',
-      address: c.address ?? '', city: c.city ?? '', notes: c.notes ?? '', active: c.active,
+      address: c.address ?? '', city: c.city ?? '',
+      contacto: c.contacto ?? '', telefono_contacto: c.telefono_contacto ?? '',
+      notes: c.notes ?? '', active: c.active,
     })
     setError('')
     setShowModal(true)
@@ -61,6 +63,8 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
       document_number: form.document_number || null,
       address: form.address || null,
       city: form.city || null,
+      contacto: form.contacto || null,
+      telefono_contacto: form.telefono_contacto || null,
       notes: form.notes || null,
       active: form.active,
     }
@@ -107,11 +111,11 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border overflow-hidden" style={{ background: '#fff', borderColor: 'var(--border)' }}>
-        <table className="w-full text-sm">
+      <div className="rounded-xl border overflow-x-auto" style={{ background: '#fff', borderColor: 'var(--border)' }}>
+        <table className="w-full text-sm" style={{ minWidth: '900px' }}>
           <thead>
             <tr style={{ background: 'var(--secondary)' }}>
-              {['Nombre', 'Documento', 'Teléfono', 'Correo', 'Ciudad', 'Estado', ''].map(h => (
+              {['Nombre', 'Documento', 'Teléfono', 'Contacto', 'Tel. Contacto', 'Correo', 'Ciudad', 'Estado', ''].map(h => (
                 <th key={h} className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>{h}</th>
               ))}
             </tr>
@@ -124,6 +128,8 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
                   {c.document_type && c.document_number ? `${c.document_type} ${c.document_number}` : '—'}
                 </td>
                 <td className="px-4 py-3" style={{ color: 'var(--muted-foreground)' }}>{c.phone ?? '—'}</td>
+                <td className="px-4 py-3" style={{ color: 'var(--muted-foreground)' }}>{c.contacto ?? '—'}</td>
+                <td className="px-4 py-3" style={{ color: 'var(--muted-foreground)' }}>{c.telefono_contacto ?? '—'}</td>
                 <td className="px-4 py-3" style={{ color: 'var(--muted-foreground)' }}>{c.email ?? '—'}</td>
                 <td className="px-4 py-3" style={{ color: 'var(--muted-foreground)' }}>{c.city ?? '—'}</td>
                 <td className="px-4 py-3">
@@ -196,6 +202,17 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
                 <Field label="Dirección">
                   <input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
                     className="input-field" placeholder="Calle 1 # 2-3" />
+                </Field>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Contacto">
+                  <input value={form.contacto} onChange={e => setForm(f => ({ ...f, contacto: e.target.value }))}
+                    className="input-field" placeholder="Nombre del contacto" />
+                </Field>
+                <Field label="Teléfono del contacto">
+                  <input value={form.telefono_contacto} onChange={e => setForm(f => ({ ...f, telefono_contacto: e.target.value }))}
+                    className="input-field" placeholder="3001234567" />
                 </Field>
               </div>
 

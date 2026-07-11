@@ -40,6 +40,8 @@ export type Customer = {
   document_number: string | null
   address: string | null
   city: string | null
+  contacto: string | null
+  telefono_contacto: string | null
   notes: string | null
   active: boolean
   created_at: string
