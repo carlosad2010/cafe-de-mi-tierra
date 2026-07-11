@@ -2,26 +2,25 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Product, Presentation } from '@/lib/types'
+import { Product, Presentation, TipoProducto } from '@/lib/types'
 import { formatCOP, calcMargin, calcProfit } from '@/lib/utils'
 import { Plus, Pencil, Package, TrendingUp } from 'lucide-react'
 
-const TYPES = ['grano', 'molido'] as const
-
 type ProductForm = {
   name: string; description: string; presentation_id: string
-  type: import('@/lib/types').CoffeeType; cost_price: string; sale_price: string
+  tipo_id: string; cost_price: string; sale_price: string
   stock: string; min_stock: string; sku: string; active: boolean
 }
 
 const EMPTY_FORM: ProductForm = {
-  name: '', description: '', presentation_id: '', type: 'grano',
+  name: '', description: '', presentation_id: '', tipo_id: '',
   cost_price: '', sale_price: '', stock: '', min_stock: '5', sku: '', active: true,
 }
 
-export function ProductsClient({ initialProducts, presentations }: {
+export function ProductsClient({ initialProducts, presentations, tiposProducto }: {
   initialProducts: Product[]
   presentations: Presentation[]
+  tiposProducto: TipoProducto[]
 }) {
   const [products, setProducts] = useState(initialProducts)
   const [showModal, setShowModal] = useState(false)
@@ -32,7 +31,7 @@ export function ProductsClient({ initialProducts, presentations }: {
 
   function openCreate() {
     setEditing(null)
-    setForm({ ...EMPTY_FORM, presentation_id: presentations[0]?.id ?? '' })
+    setForm({ ...EMPTY_FORM, presentation_id: presentations[0]?.id ?? '', tipo_id: tiposProducto[0]?.id ?? '' })
     setError('')
     setShowModal(true)
   }
@@ -41,7 +40,7 @@ export function ProductsClient({ initialProducts, presentations }: {
     setEditing(p)
     setForm({
       name: p.name, description: p.description ?? '',
-      presentation_id: p.presentation_id, type: p.type,
+      presentation_id: p.presentation_id, tipo_id: p.tipo_id,
       cost_price: String(p.cost_price), sale_price: String(p.sale_price),
       stock: String(p.stock), min_stock: String(p.min_stock),
       sku: p.sku ?? '', active: p.active,
@@ -60,7 +59,7 @@ export function ProductsClient({ initialProducts, presentations }: {
       name: form.name,
       description: form.description || null,
       presentation_id: form.presentation_id,
-      type: form.type,
+      tipo_id: form.tipo_id,
       cost_price: Number(form.cost_price),
       sale_price: Number(form.sale_price),
       stock: Number(form.stock),
@@ -131,7 +130,7 @@ export function ProductsClient({ initialProducts, presentations }: {
                     {p.presentation?.nombre}
                   </span>
                 </td>
-                <td className="px-4 py-3 capitalize" style={{ color: 'var(--muted-foreground)' }}>{p.type}</td>
+                <td className="px-4 py-3 capitalize" style={{ color: 'var(--muted-foreground)' }}>{p.tipo?.nombre}</td>
                 <td className="px-4 py-3" style={{ color: 'var(--muted-foreground)' }}>{formatCOP(p.cost_price)}</td>
                 <td className="px-4 py-3 font-medium" style={{ color: 'var(--foreground)' }}>{formatCOP(p.sale_price)}</td>
                 <td className="px-4 py-3">
@@ -190,8 +189,8 @@ export function ProductsClient({ initialProducts, presentations }: {
                   </select>
                 </Field>
                 <Field label="Tipo">
-                  <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value as any }))} className="input-field">
-                    {TYPES.map(t => <option key={t} value={t} className="capitalize">{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+                  <select value={form.tipo_id} onChange={e => setForm(f => ({ ...f, tipo_id: e.target.value }))} className="input-field">
+                    {tiposProducto.map(t => <option key={t.id} value={t.id}>{t.nombre.charAt(0).toUpperCase() + t.nombre.slice(1)}</option>)}
                   </select>
                 </Field>
               </div>

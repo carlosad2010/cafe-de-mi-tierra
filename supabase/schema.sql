@@ -67,6 +67,26 @@ insert into public.presentations (nombre, orden) values
   ('45g', 1), ('250g', 2), ('500g', 3);
 
 -- ============================================================
+-- TIPOS DE PRODUCTO (lookup table, administrable desde la UI)
+-- ============================================================
+create table public.tipos_producto (
+  id uuid primary key default uuid_generate_v4(),
+  nombre text not null unique,
+  activo boolean not null default true,
+  orden integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table public.tipos_producto enable row level security;
+create policy "Authenticated users can manage tipos_producto"
+  on public.tipos_producto for all
+  using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
+
+insert into public.tipos_producto (nombre, orden) values
+  ('grano', 1), ('molido', 2);
+
+-- ============================================================
 -- PRODUCTOS
 -- ============================================================
 create table public.products (
@@ -74,7 +94,7 @@ create table public.products (
   name text not null,
   description text,
   presentation_id uuid not null references public.presentations(id) on delete restrict,
-  type text not null check (type in ('grano', 'molido')),
+  tipo_id uuid not null references public.tipos_producto(id) on delete restrict,
   cost_price numeric(12,2) not null default 0,
   sale_price numeric(12,2) not null default 0,
   stock integer not null default 0,
@@ -284,22 +304,49 @@ create or replace view public.daily_sales as
   where status = 'completado'
   group by date_trunc('day', created_at);
 
--- Vista: productos con stock bajo (incluye nombre de presentación como string)
+-- Vista: productos con stock bajo (incluye nombres de presentación y tipo como strings)
 create or replace view public.low_stock_products as
   select
-    p.id, p.name, p.presentation_id, p.type, p.stock, p.min_stock,
+    p.id, p.name, p.presentation_id, p.tipo_id, p.stock, p.min_stock,
     p.active, p.sku, p.cost_price, p.sale_price, p.description,
     p.created_at, p.updated_at,
-    pr.nombre as presentation
+    pr.nombre as presentation,
+    tp.nombre as type
   from public.products p
   join public.presentations pr on pr.id = p.presentation_id
+  join public.tipos_producto tp on tp.id = p.tipo_id
   where p.stock <= p.min_stock and p.active = true;
+
+-- ============================================================
+-- CONFIGURACIÓN DEL NEGOCIO (fila única)
+-- ============================================================
+create table public.configuracion (
+  id uuid primary key default uuid_generate_v4(),
+  nombre_negocio text not null default 'Café de mi Tierra',
+  nit text,
+  direccion text,
+  telefono text,
+  email text,
+  mensaje_factura text,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.configuracion enable row level security;
+create policy "Authenticated users can read configuracion"
+  on public.configuracion for select using (auth.role() = 'authenticated');
+create policy "Authenticated users can update configuracion"
+  on public.configuracion for update using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "Authenticated users can insert configuracion"
+  on public.configuracion for insert with check (auth.role() = 'authenticated');
+
+insert into public.configuracion (nombre_negocio, mensaje_factura)
+  values ('Café de mi Tierra', 'Gracias por su compra. ¡Vuelva pronto!');
 
 -- ============================================================
 -- DATOS INICIALES: Productos
 -- ============================================================
-insert into public.products (name, description, presentation_id, type, cost_price, sale_price, stock, min_stock, sku)
-select name, description, pr.id, type, cost_price, sale_price, stock, min_stock, sku
+insert into public.products (name, description, presentation_id, tipo_id, cost_price, sale_price, stock, min_stock, sku)
+select name, description, pr.id, tp.id, cost_price, sale_price, stock, min_stock, sku
 from (values
   ('Café de mi Tierra Grano 45g',   'Café colombiano selecto en grano', '45g',  'grano',  3500,  7000,  50, 10, 'CMT-G-45'),
   ('Café de mi Tierra Grano 250g',  'Café colombiano selecto en grano', '250g', 'grano',  16000, 28000, 30, 5,  'CMT-G-250'),
@@ -307,5 +354,6 @@ from (values
   ('Café de mi Tierra Molido 45g',  'Café colombiano selecto molido',   '45g',  'molido', 3800,  7500,  50, 10, 'CMT-M-45'),
   ('Café de mi Tierra Molido 250g', 'Café colombiano selecto molido',   '250g', 'molido', 17000, 30000, 30, 5,  'CMT-M-250'),
   ('Café de mi Tierra Molido 500g', 'Café colombiano selecto molido',   '500g', 'molido', 30000, 54000, 20, 5,  'CMT-M-500')
-) as v(name, description, nombre, type, cost_price, sale_price, stock, min_stock, sku)
-join public.presentations pr on pr.nombre = v.nombre;
+) as v(name, description, pres_nombre, tipo_nombre, cost_price, sale_price, stock, min_stock, sku)
+join public.presentations pr on pr.nombre = v.pres_nombre
+join public.tipos_producto tp on tp.nombre = v.tipo_nombre;

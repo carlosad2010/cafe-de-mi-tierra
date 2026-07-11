@@ -12,7 +12,7 @@ export default async function SalesPage() {
       .limit(100),
     supabase
       .from('products')
-      .select('*, presentation:presentations(id, nombre, activa, orden)')
+      .select('*, presentation:presentations(id, nombre, activa, orden), tipo:tipos_producto(id, nombre, activo, orden)')
       .eq('active', true),
     supabase.from('customers').select('*').eq('active', true).order('full_name'),
   ])

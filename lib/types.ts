@@ -18,7 +18,24 @@ export type Presentation = {
   created_at: string
 }
 
-export type CoffeeType = 'grano' | 'molido'
+export type TipoProducto = {
+  id: string
+  nombre: string
+  activo: boolean
+  orden: number
+  created_at: string
+}
+
+export type Configuracion = {
+  id: string
+  nombre_negocio: string
+  nit: string | null
+  direccion: string | null
+  telefono: string | null
+  email: string | null
+  mensaje_factura: string | null
+  updated_at: string
+}
 
 export type Product = {
   id: string
@@ -26,7 +43,8 @@ export type Product = {
   description: string | null
   presentation_id: string
   presentation?: Presentation
-  type: CoffeeType
+  tipo_id: string
+  tipo?: TipoProducto
   cost_price: number
   sale_price: number
   stock: number
