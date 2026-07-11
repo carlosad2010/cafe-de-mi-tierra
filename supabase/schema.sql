@@ -20,18 +20,12 @@ create table public.profiles (
 
 alter table public.profiles enable row level security;
 
-create policy "Admins can manage profiles"
+-- Each user can fully manage their own profile row; admin UI controls are enforced at app layer.
+-- Avoids recursive subquery (existence check on same table with RLS active causes infinite recursion).
+create policy "Users can access own profile"
   on public.profiles for all
-  using (
-    exists (
-      select 1 from public.profiles p
-      where p.id = auth.uid() and p.role = 'admin'
-    )
-  );
-
-create policy "Users can read own profile"
-  on public.profiles for select
-  using (id = auth.uid());
+  using (auth.uid() = id)
+  with check (auth.uid() = id);
 
 -- Trigger para crear perfil automáticamente al registrar usuario
 create or replace function public.handle_new_user()
