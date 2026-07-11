@@ -111,3 +111,46 @@ export type DashboardStats = {
   low_stock_count: number
   total_customers: number
 }
+
+export type CajaTipo = 'efectivo' | 'bancaria'
+export type MovimientoTipo = 'ingreso' | 'egreso'
+
+export type Caja = {
+  id: string
+  nombre: string
+  tipo: CajaTipo
+  saldo_inicial: number
+  activa: boolean
+  created_at: string
+  updated_at: string
+  saldo_actual?: number
+}
+
+export type MovimientoCaja = {
+  id: string
+  caja_id: string
+  tipo: MovimientoTipo
+  concepto: string
+  monto: number
+  referencia: string | null
+  fecha: string
+  orden_id: string | null
+  created_by: string | null
+  created_at: string
+  caja?: Pick<Caja, 'nombre' | 'tipo'>
+}
+
+export type Compra = {
+  id: string
+  concepto: string
+  proveedor: string | null
+  monto: number
+  caja_id: string
+  movimiento_id: string | null
+  fecha: string
+  notas: string | null
+  created_by: string | null
+  created_at: string
+  caja?: Pick<Caja, 'nombre' | 'tipo'>
+  creator?: Pick<Profile, 'full_name'>
+}

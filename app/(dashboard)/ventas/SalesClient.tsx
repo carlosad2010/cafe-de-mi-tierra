@@ -113,6 +113,32 @@ export function SalesClient({
       .from('orders').update({ status }).eq('id', orderId)
       .select('*, customer:customers(full_name, phone, email), seller:profiles(full_name), items:order_items(*, product:products(name))')
       .single()
+
+    if (data && status === 'completado') {
+      // Find the active caja that matches the payment method
+      const cajaTipo = data.payment_method === 'efectivo' ? 'efectivo' : 'bancaria'
+      const { data: caja } = await supabase
+        .from('cajas')
+        .select('id')
+        .eq('tipo', cajaTipo)
+        .eq('activa', true)
+        .limit(1)
+        .maybeSingle()
+
+      if (caja) {
+        const { data: { user } } = await supabase.auth.getUser()
+        await supabase.from('movimientos_caja').insert({
+          caja_id: caja.id,
+          tipo: 'ingreso',
+          concepto: `Venta #${data.order_number}`,
+          monto: data.total,
+          referencia: data.payment_method !== 'efectivo' ? PAYMENT_METHODS[data.payment_method] : null,
+          orden_id: data.id,
+          created_by: user?.id ?? null,
+        })
+      }
+    }
+
     if (data) setOrders(prev => prev.map(o => o.id === orderId ? data : o))
   }
 

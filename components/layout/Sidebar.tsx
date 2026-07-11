@@ -14,16 +14,20 @@ import {
   UserCog,
   LogOut,
   Coffee,
+  Wallet,
+  ShoppingBag,
 } from 'lucide-react'
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'seller'] },
-  { href: '/ventas', label: 'Ventas', icon: ShoppingCart, roles: ['admin', 'seller'] },
-  { href: '/clientes', label: 'Clientes', icon: Users, roles: ['admin', 'seller'] },
-  { href: '/productos', label: 'Productos', icon: Package, roles: ['admin', 'seller'] },
-  { href: '/inventario', label: 'Inventario', icon: Warehouse, roles: ['admin', 'seller'] },
-  { href: '/facturas', label: 'Facturas', icon: FileText, roles: ['admin', 'seller'] },
-  { href: '/usuarios', label: 'Usuarios', icon: UserCog, roles: ['admin'] },
+  { href: '/dashboard',  label: 'Dashboard',  icon: LayoutDashboard, roles: ['admin', 'seller'] },
+  { href: '/ventas',     label: 'Ventas',      icon: ShoppingCart,    roles: ['admin', 'seller'] },
+  { href: '/clientes',   label: 'Clientes',    icon: Users,           roles: ['admin', 'seller'] },
+  { href: '/productos',  label: 'Productos',   icon: Package,         roles: ['admin', 'seller'] },
+  { href: '/inventario', label: 'Inventario',  icon: Warehouse,       roles: ['admin', 'seller'] },
+  { href: '/facturas',   label: 'Facturas',    icon: FileText,        roles: ['admin', 'seller'] },
+  { href: '/cajas',      label: 'Cajas',       icon: Wallet,          roles: ['admin', 'seller'] },
+  { href: '/compras',    label: 'Compras',     icon: ShoppingBag,     roles: ['admin', 'seller'] },
+  { href: '/usuarios',   label: 'Usuarios',    icon: UserCog,         roles: ['admin'] },
 ]
 
 export function Sidebar({ profile }: { profile: Profile }) {
