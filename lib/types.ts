@@ -140,10 +140,13 @@ export type MovimientoCaja = {
   caja?: Pick<Caja, 'nombre' | 'tipo'>
 }
 
+export type TipoGasto = 'compra' | 'gasto'
+
 export type Compra = {
   id: string
   concepto: string
   proveedor: string | null
+  tipo: TipoGasto
   monto: number
   caja_id: string
   movimiento_id: string | null

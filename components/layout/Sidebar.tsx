@@ -26,7 +26,7 @@ const navItems = [
   { href: '/inventario', label: 'Inventario',  icon: Warehouse,       roles: ['admin', 'seller'] },
   { href: '/facturas',   label: 'Facturas',    icon: FileText,        roles: ['admin', 'seller'] },
   { href: '/cajas',      label: 'Cajas',       icon: Wallet,          roles: ['admin', 'seller'] },
-  { href: '/compras',    label: 'Compras',     icon: ShoppingBag,     roles: ['admin', 'seller'] },
+  { href: '/compras',    label: 'Compras y Gastos', icon: ShoppingBag, roles: ['admin', 'seller'] },
   { href: '/usuarios',   label: 'Usuarios',    icon: UserCog,         roles: ['admin'] },
 ]
 
