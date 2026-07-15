@@ -46,7 +46,8 @@ export type Product = {
   tipo_id: string
   tipo?: TipoProducto
   cost_price: number
-  sale_price: number
+  precio1: number
+  precio2: number
   stock: number
   min_stock: number
   active: boolean

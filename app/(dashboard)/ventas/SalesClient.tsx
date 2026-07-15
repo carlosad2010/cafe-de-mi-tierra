@@ -10,7 +10,7 @@ type CartItem = { product: Product; quantity: number }
 
 const EMPTY_ORDER = {
   customer_id: '', payment_method: 'efectivo' as PaymentMethod,
-  notes: '', discount: '0',
+  notes: '', discount: '0', price_tier: 'precio1' as 'precio1' | 'precio2',
 }
 
 export function SalesClient({
@@ -30,7 +30,7 @@ export function SalesClient({
   const [error, setError] = useState('')
   const [filterStatus, setFilterStatus] = useState('todos')
 
-  const subtotal = cart.reduce((s, i) => s + i.product.sale_price * i.quantity, 0)
+  const subtotal = cart.reduce((s, i) => s + i.product[form.price_tier] * i.quantity, 0)
   const discount = Number(form.discount) || 0
   const total = subtotal - discount
 
@@ -86,9 +86,9 @@ export function SalesClient({
       product_presentation: i.product.presentation?.nombre ?? '',
       product_type: i.product.tipo?.nombre ?? '',
       quantity: i.quantity,
-      unit_price: i.product.sale_price,
+      unit_price: i.product[form.price_tier],
       cost_price: i.product.cost_price,
-      subtotal: i.product.sale_price * i.quantity,
+      subtotal: i.product[form.price_tier] * i.quantity,
     }))
 
     const { error: itemsErr } = await supabase.from('order_items').insert(items)
@@ -249,6 +249,26 @@ export function SalesClient({
                 </Field>
               </div>
 
+              {/* Price tier selector */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--foreground)' }}>Tipo de precio</label>
+                <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: 'var(--border)', width: 'fit-content' }}>
+                  {([
+                    { key: 'precio1', label: 'Precio 1 — Distribuidor' },
+                    { key: 'precio2', label: 'Precio 2 — Público' },
+                  ] as const).map(opt => (
+                    <button key={opt.key} type="button"
+                      className="px-5 py-2 text-sm font-medium transition-colors"
+                      style={form.price_tier === opt.key
+                        ? { background: 'var(--primary)', color: 'var(--primary-foreground)' }
+                        : { background: '#fff', color: 'var(--muted-foreground)' }}
+                      onClick={() => setForm(f => ({ ...f, price_tier: opt.key }))}>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Add product to cart */}
               <div className="rounded-xl p-4 space-y-3" style={{ background: 'var(--secondary)' }}>
                 <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Agregar productos</p>
@@ -258,7 +278,7 @@ export function SalesClient({
                     style={{ flex: '1 1 0%', minWidth: 0 }}>
                     <option value="">Seleccionar producto...</option>
                     {products.map(p => (
-                      <option key={p.id} value={p.id}>{p.name} — {formatCOP(p.sale_price)} (Stock: {p.stock})</option>
+                      <option key={p.id} value={p.id}>{p.name} — {formatCOP(p[form.price_tier])} (Stock: {p.stock})</option>
                     ))}
                   </select>
                   <div className="flex flex-col items-center shrink-0">
@@ -292,7 +312,7 @@ export function SalesClient({
                           <td className="px-3 py-2" style={{ color: 'var(--foreground)' }}>
                             {item.product.presentation?.nombre} {item.product.tipo?.nombre}
                           </td>
-                          <td className="px-3 py-2" style={{ color: 'var(--muted-foreground)' }}>{formatCOP(item.product.sale_price)}</td>
+                          <td className="px-3 py-2" style={{ color: 'var(--muted-foreground)' }}>{formatCOP(item.product[form.price_tier])}</td>
                           <td className="px-3 py-2">
                             <input type="number" min="1" value={item.quantity}
                               onChange={e => setCart(prev => prev.map(i => i.product.id === item.product.id ? { ...i, quantity: Number(e.target.value) } : i))}
@@ -300,7 +320,7 @@ export function SalesClient({
                               style={{ borderColor: 'var(--border)' }} />
                           </td>
                           <td className="px-3 py-2 font-medium" style={{ color: 'var(--primary)' }}>
-                            {formatCOP(item.product.sale_price * item.quantity)}
+                            {formatCOP(item.product[form.price_tier] * item.quantity)}
                           </td>
                           <td className="px-3 py-2">
                             <button type="button" onClick={() => removeFromCart(item.product.id)}>

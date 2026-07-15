@@ -8,13 +8,13 @@ import { Plus, Pencil, Package, TrendingUp } from 'lucide-react'
 
 type ProductForm = {
   name: string; description: string; presentation_id: string
-  tipo_id: string; cost_price: string; sale_price: string
+  tipo_id: string; cost_price: string; precio1: string; precio2: string
   stock: string; min_stock: string; sku: string; active: boolean
 }
 
 const EMPTY_FORM: ProductForm = {
   name: '', description: '', presentation_id: '', tipo_id: '',
-  cost_price: '', sale_price: '', stock: '', min_stock: '5', sku: '', active: true,
+  cost_price: '', precio1: '', precio2: '', stock: '', min_stock: '5', sku: '', active: true,
 }
 
 export function ProductsClient({ initialProducts, presentations, tiposProducto }: {
@@ -41,7 +41,9 @@ export function ProductsClient({ initialProducts, presentations, tiposProducto }
     setForm({
       name: p.name, description: p.description ?? '',
       presentation_id: p.presentation_id, tipo_id: p.tipo_id,
-      cost_price: String(p.cost_price), sale_price: String(p.sale_price),
+      cost_price: String(p.cost_price),
+      precio1: String(p.precio1),
+      precio2: String(p.precio2),
       stock: String(p.stock), min_stock: String(p.min_stock),
       sku: p.sku ?? '', active: p.active,
     })
@@ -61,7 +63,8 @@ export function ProductsClient({ initialProducts, presentations, tiposProducto }
       presentation_id: form.presentation_id,
       tipo_id: form.tipo_id,
       cost_price: Number(form.cost_price),
-      sale_price: Number(form.sale_price),
+      precio1: Number(form.precio1),
+      precio2: Number(form.precio2),
       stock: Number(form.stock),
       min_stock: Number(form.min_stock),
       sku: form.sku || null,
@@ -91,10 +94,13 @@ export function ProductsClient({ initialProducts, presentations, tiposProducto }
     if (!error) setProducts(prev => prev.map(x => x.id === p.id ? { ...x, active: !x.active } : x))
   }
 
-  const saleP = Number(form.sale_price)
+  const precio1V = Number(form.precio1)
+  const precio2V = Number(form.precio2)
   const costP = Number(form.cost_price)
-  const margin = calcMargin(saleP, costP)
-  const profit = calcProfit(saleP, costP)
+  const margin1 = calcMargin(precio1V, costP)
+  const profit1 = calcProfit(precio1V, costP)
+  const margin2 = calcMargin(precio2V, costP)
+  const profit2 = calcProfit(precio2V, costP)
 
   return (
     <div className="p-6">
@@ -115,7 +121,7 @@ export function ProductsClient({ initialProducts, presentations, tiposProducto }
         <table className="w-full text-sm">
           <thead>
             <tr style={{ background: 'var(--secondary)' }}>
-              {['Producto', 'Presentación', 'Tipo', 'Costo', 'Precio', 'Margen', 'Stock', 'Estado', ''].map(h => (
+              {['Producto', 'Presentación', 'Tipo', 'Costo', 'Precio 1', 'Precio 2', 'Margen', 'Stock', 'Estado', ''].map(h => (
                 <th key={h} className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>{h}</th>
               ))}
             </tr>
@@ -132,11 +138,12 @@ export function ProductsClient({ initialProducts, presentations, tiposProducto }
                 </td>
                 <td className="px-4 py-3 capitalize" style={{ color: 'var(--muted-foreground)' }}>{p.tipo?.nombre}</td>
                 <td className="px-4 py-3" style={{ color: 'var(--muted-foreground)' }}>{formatCOP(p.cost_price)}</td>
-                <td className="px-4 py-3 font-medium" style={{ color: 'var(--foreground)' }}>{formatCOP(p.sale_price)}</td>
+                <td className="px-4 py-3 font-medium" style={{ color: 'var(--foreground)' }}>{formatCOP(p.precio1)}</td>
+                <td className="px-4 py-3" style={{ color: 'var(--muted-foreground)' }}>{formatCOP(p.precio2)}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1">
                     <TrendingUp size={13} style={{ color: '#16a34a' }} />
-                    <span style={{ color: '#16a34a' }}>{calcMargin(p.sale_price, p.cost_price).toFixed(0)}%</span>
+                    <span style={{ color: '#16a34a' }}>{calcMargin(p.precio1, p.cost_price).toFixed(0)}%</span>
                   </div>
                 </td>
                 <td className="px-4 py-3">
@@ -195,21 +202,36 @@ export function ProductsClient({ initialProducts, presentations, tiposProducto }
                 </Field>
               </div>
 
+              <Field label="Precio de costo (COP)">
+                <input type="number" required min="0" value={form.cost_price}
+                  onChange={e => setForm(f => ({ ...f, cost_price: e.target.value }))} className="input-field" placeholder="0" />
+              </Field>
+
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Precio de costo (COP)">
-                  <input type="number" required min="0" value={form.cost_price}
-                    onChange={e => setForm(f => ({ ...f, cost_price: e.target.value }))} className="input-field" placeholder="0" />
+                <Field label="Precio 1 — Distribuidor (COP)">
+                  <input type="number" required min="0" value={form.precio1}
+                    onChange={e => setForm(f => ({ ...f, precio1: e.target.value }))} className="input-field" placeholder="0" />
                 </Field>
-                <Field label="Precio de venta (COP)">
-                  <input type="number" required min="0" value={form.sale_price}
-                    onChange={e => setForm(f => ({ ...f, sale_price: e.target.value }))} className="input-field" placeholder="0" />
+                <Field label="Precio 2 — Público (COP)">
+                  <input type="number" required min="0" value={form.precio2}
+                    onChange={e => setForm(f => ({ ...f, precio2: e.target.value }))} className="input-field" placeholder="0" />
                 </Field>
               </div>
 
-              {saleP > 0 && costP > 0 && (
-                <div className="rounded-lg p-3 flex gap-4 text-sm" style={{ background: 'var(--secondary)' }}>
-                  <span style={{ color: 'var(--muted-foreground)' }}>Ganancia: <strong style={{ color: '#16a34a' }}>{formatCOP(profit)}</strong></span>
-                  <span style={{ color: 'var(--muted-foreground)' }}>Margen: <strong style={{ color: '#16a34a' }}>{margin.toFixed(1)}%</strong></span>
+              {costP > 0 && (precio1V > 0 || precio2V > 0) && (
+                <div className="rounded-lg p-3 space-y-1 text-sm" style={{ background: 'var(--secondary)' }}>
+                  {precio1V > 0 && (
+                    <div className="flex gap-4">
+                      <span style={{ color: 'var(--muted-foreground)' }}>P1 ganancia: <strong style={{ color: '#16a34a' }}>{formatCOP(profit1)}</strong></span>
+                      <span style={{ color: 'var(--muted-foreground)' }}>Margen: <strong style={{ color: '#16a34a' }}>{margin1.toFixed(1)}%</strong></span>
+                    </div>
+                  )}
+                  {precio2V > 0 && (
+                    <div className="flex gap-4">
+                      <span style={{ color: 'var(--muted-foreground)' }}>P2 ganancia: <strong style={{ color: '#16a34a' }}>{formatCOP(profit2)}</strong></span>
+                      <span style={{ color: 'var(--muted-foreground)' }}>Margen: <strong style={{ color: '#16a34a' }}>{margin2.toFixed(1)}%</strong></span>
+                    </div>
+                  )}
                 </div>
               )}
 

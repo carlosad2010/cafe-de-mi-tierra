@@ -96,7 +96,8 @@ create table public.products (
   presentation_id uuid not null references public.presentations(id) on delete restrict,
   tipo_id uuid not null references public.tipos_producto(id) on delete restrict,
   cost_price numeric(12,2) not null default 0,
-  sale_price numeric(12,2) not null default 0,
+  precio1 numeric(12,2) not null default 0,
+  precio2 numeric(12,2) not null default 0,
   stock integer not null default 0,
   min_stock integer not null default 5,
   active boolean not null default true,
@@ -308,7 +309,7 @@ create or replace view public.daily_sales as
 create or replace view public.low_stock_products as
   select
     p.id, p.name, p.presentation_id, p.tipo_id, p.stock, p.min_stock,
-    p.active, p.sku, p.cost_price, p.sale_price, p.description,
+    p.active, p.sku, p.cost_price, p.precio1, p.precio2, p.description,
     p.created_at, p.updated_at,
     pr.nombre as presentation,
     tp.nombre as type
@@ -345,15 +346,15 @@ insert into public.configuracion (nombre_negocio, mensaje_factura)
 -- ============================================================
 -- DATOS INICIALES: Productos
 -- ============================================================
-insert into public.products (name, description, presentation_id, tipo_id, cost_price, sale_price, stock, min_stock, sku)
-select name, description, pr.id, tp.id, cost_price, sale_price, stock, min_stock, sku
+insert into public.products (name, description, presentation_id, tipo_id, cost_price, precio1, precio2, stock, min_stock, sku)
+select name, description, pr.id, tp.id, cost_price, precio1, precio2, stock, min_stock, sku
 from (values
-  ('Café de mi Tierra Grano 45g',   'Café colombiano selecto en grano', '45g',  'grano',  3500,  7000,  50, 10, 'CMT-G-45'),
-  ('Café de mi Tierra Grano 250g',  'Café colombiano selecto en grano', '250g', 'grano',  16000, 28000, 30, 5,  'CMT-G-250'),
-  ('Café de mi Tierra Grano 500g',  'Café colombiano selecto en grano', '500g', 'grano',  28000, 50000, 20, 5,  'CMT-G-500'),
-  ('Café de mi Tierra Molido 45g',  'Café colombiano selecto molido',   '45g',  'molido', 3800,  7500,  50, 10, 'CMT-M-45'),
-  ('Café de mi Tierra Molido 250g', 'Café colombiano selecto molido',   '250g', 'molido', 17000, 30000, 30, 5,  'CMT-M-250'),
-  ('Café de mi Tierra Molido 500g', 'Café colombiano selecto molido',   '500g', 'molido', 30000, 54000, 20, 5,  'CMT-M-500')
-) as v(name, description, pres_nombre, tipo_nombre, cost_price, sale_price, stock, min_stock, sku)
+  ('Café de mi Tierra Grano 45g',   'Café colombiano selecto en grano', '45g',  'grano',  3500,  7000,  8500,  50, 10, 'CMT-G-45'),
+  ('Café de mi Tierra Grano 250g',  'Café colombiano selecto en grano', '250g', 'grano',  16000, 28000, 34000, 30, 5,  'CMT-G-250'),
+  ('Café de mi Tierra Grano 500g',  'Café colombiano selecto en grano', '500g', 'grano',  28000, 50000, 60000, 20, 5,  'CMT-G-500'),
+  ('Café de mi Tierra Molido 45g',  'Café colombiano selecto molido',   '45g',  'molido', 3800,  7500,  9000,  50, 10, 'CMT-M-45'),
+  ('Café de mi Tierra Molido 250g', 'Café colombiano selecto molido',   '250g', 'molido', 17000, 30000, 36000, 30, 5,  'CMT-M-250'),
+  ('Café de mi Tierra Molido 500g', 'Café colombiano selecto molido',   '500g', 'molido', 30000, 54000, 65000, 20, 5,  'CMT-M-500')
+) as v(name, description, pres_nombre, tipo_nombre, cost_price, precio1, precio2, stock, min_stock, sku)
 join public.presentations pr on pr.nombre = v.pres_nombre
 join public.tipos_producto tp on tp.nombre = v.tipo_nombre;
