@@ -343,7 +343,7 @@ export function InformesClient({
                   <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#A8A29E' }} tickLine={false} axisLine={false} />
                   <YAxis tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11, fill: '#A8A29E' }} tickLine={false} axisLine={false} width={48} />
                   <Tooltip
-                    formatter={(v: number, name: string) => [formatCOP(v), name === 'total' ? 'Ingresos' : 'Ganancia']}
+                    formatter={(v, name) => [formatCOP(v as number), (name as string) === 'total' ? 'Ingresos' : 'Ganancia']}
                     contentStyle={tooltipStyle} />
                   <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }}
                     formatter={v => v === 'total' ? 'Ingresos' : 'Ganancia bruta'} />
@@ -365,7 +365,7 @@ export function InformesClient({
                       dataKey="value" nameKey="name">
                       {paymentData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                     </Pie>
-                    <Tooltip formatter={(v: number) => formatCOP(v)} contentStyle={tooltipStyle} />
+                    <Tooltip formatter={(v) => formatCOP(v as number)} contentStyle={tooltipStyle} />
                     <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
                   </PieChart>
                 </ResponsiveContainer>
@@ -417,7 +417,7 @@ export function InformesClient({
                   <CartesianGrid strokeDasharray="3 3" stroke="#F0EDE8" horizontal={false} />
                   <XAxis type="number" tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11, fill: '#A8A29E' }} tickLine={false} axisLine={false} />
                   <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: '#78716C' }} tickLine={false} axisLine={false} width={80} />
-                  <Tooltip formatter={(v: number, name: string) => [formatCOP(v), name === 'revenue' ? 'Ingresos' : 'Costo']}
+                  <Tooltip formatter={(v, name) => [formatCOP(v as number), (name as string) === 'revenue' ? 'Ingresos' : 'Costo']}
                     contentStyle={tooltipStyle} />
                   <Bar dataKey="revenue" name="revenue" radius={[0, 4, 4, 0]}>
                     {topProducts.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
@@ -486,7 +486,7 @@ export function InformesClient({
                     <CartesianGrid strokeDasharray="3 3" stroke="#F0EDE8" horizontal={false} />
                     <XAxis type="number" tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11, fill: '#A8A29E' }} tickLine={false} axisLine={false} />
                     <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: '#78716C' }} tickLine={false} axisLine={false} width={85} />
-                    <Tooltip formatter={(v: number) => formatCOP(v)} contentStyle={tooltipStyle} />
+                    <Tooltip formatter={(v) => formatCOP(v as number)} contentStyle={tooltipStyle} />
                     <Bar dataKey="total" name="Facturado" radius={[0, 4, 4, 0]}>
                       {topClients.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                     </Bar>
@@ -561,7 +561,7 @@ export function InformesClient({
                       dataKey="value" nameKey="name">
                       {comprasPieData.map((_, i) => <Cell key={i} fill={['#F97316', '#3B82F6'][i]} />)}
                     </Pie>
-                    <Tooltip formatter={(v: number) => formatCOP(v)} contentStyle={tooltipStyle} />
+                    <Tooltip formatter={(v) => formatCOP(v as number)} contentStyle={tooltipStyle} />
                     <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
                   </PieChart>
                 </ResponsiveContainer>
@@ -626,7 +626,7 @@ export function InformesClient({
                   <XAxis type="number" tickFormatter={v => `${v.toFixed(0)}%`} tick={{ fontSize: 11, fill: '#A8A29E' }} tickLine={false} axisLine={false} domain={[0, 100]} />
                   <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: '#78716C' }} tickLine={false} axisLine={false} width={80} />
                   <Tooltip
-                    formatter={(v: number, name: string) => [`${v.toFixed(1)}%`, name === 'margenP1' ? 'Margen P1 (Distribuidor)' : 'Margen P2 (Público)']}
+                    formatter={(v, name) => [`${(v as number).toFixed(1)}%`, (name as string) === 'margenP1' ? 'Margen P1 (Distribuidor)' : 'Margen P2 (Público)']}
                     contentStyle={tooltipStyle} />
                   <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }}
                     formatter={v => v === 'margenP1' ? 'Precio 1 — Distribuidor' : 'Precio 2 — Público'} />
