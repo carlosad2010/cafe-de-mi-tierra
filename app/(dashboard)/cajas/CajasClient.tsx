@@ -20,7 +20,8 @@ export function CajasClient({
 }) {
   const [cajas, setCajas] = useState(initialCajas)
   const [movimientos] = useState(initialMovimientos)
-  const [filterCaja, setFilterCaja] = useState<string>('todas')
+  const [filterCajaTipo, setFilterCajaTipo] = useState<'todas' | 'efectivo' | 'bancaria'>('todas')
+  const [filterTipo, setFilterTipo] = useState<'todos' | 'ingreso' | 'egreso'>('todos')
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<CajaWithBalance | null>(null)
   const [form, setForm] = useState({ nombre: '', tipo: 'efectivo' as CajaTipo, saldo_inicial: '0' })
@@ -86,9 +87,9 @@ export function CajasClient({
     if (data) setCajas(prev => prev.map(c => c.id === caja.id ? { ...c, activa: data.activa } : c))
   }
 
-  const movimientosFiltrados = filterCaja === 'todas'
-    ? movimientos
-    : movimientos.filter(m => m.caja_id === filterCaja)
+  const movimientosFiltrados = movimientos
+    .filter(m => filterCajaTipo === 'todas' || m.caja?.tipo === filterCajaTipo)
+    .filter(m => filterTipo === 'todos' || m.tipo === filterTipo)
 
   return (
     <div className="p-6 space-y-6">
@@ -154,14 +155,51 @@ export function CajasClient({
 
       {/* Movimientos */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-semibold" style={{ color: 'var(--foreground)' }}>Movimientos</h2>
-          <select value={filterCaja} onChange={e => setFilterCaja(e.target.value)}
-            className="text-sm border rounded-lg px-3 py-1.5 outline-none"
-            style={{ borderColor: 'var(--border)', background: '#fff' }}>
-            <option value="todas">Todas las cajas</option>
-            {cajas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-          </select>
+        <div className="mb-4">
+          <h2 className="text-base font-semibold mb-3" style={{ color: 'var(--foreground)' }}>Movimientos</h2>
+          <div className="flex flex-wrap gap-4">
+            {/* Filtro por tipo de caja */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium" style={{ color: 'var(--muted-foreground)' }}>Caja:</span>
+              <div className="flex gap-1">
+                {([
+                  { key: 'todas', label: 'Todas' },
+                  { key: 'efectivo', label: 'Efectivo' },
+                  { key: 'bancaria', label: 'Bancaria' },
+                ] as const).map(opt => (
+                  <button key={opt.key} onClick={() => setFilterCajaTipo(opt.key)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                    style={{
+                      background: filterCajaTipo === opt.key ? 'var(--primary)' : 'var(--secondary)',
+                      color: filterCajaTipo === opt.key ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
+                    }}>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Filtro por tipo de movimiento */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium" style={{ color: 'var(--muted-foreground)' }}>Tipo:</span>
+              <div className="flex gap-1">
+                {([
+                  { key: 'todos', label: 'Todos' },
+                  { key: 'ingreso', label: 'Ingreso' },
+                  { key: 'egreso', label: 'Egreso' },
+                ] as const).map(opt => (
+                  <button key={opt.key} onClick={() => setFilterTipo(opt.key)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                    style={{
+                      background: filterTipo === opt.key ? 'var(--primary)' : 'var(--secondary)',
+                      color: filterTipo === opt.key ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
+                    }}>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="rounded-xl border overflow-hidden" style={{ background: '#fff', borderColor: 'var(--border)' }}>
