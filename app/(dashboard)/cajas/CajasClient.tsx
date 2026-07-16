@@ -7,7 +7,10 @@ import { formatCOP, formatDateTime } from '@/lib/utils'
 import { Wallet, Banknote, Plus, Pencil, TrendingUp, TrendingDown, X } from 'lucide-react'
 
 type CajaWithBalance = Caja & { saldo_actual: number }
-type MovimientoWithCaja = MovimientoCaja & { caja: Pick<Caja, 'nombre' | 'tipo'> }
+type MovimientoWithCaja = MovimientoCaja & {
+  caja: Pick<Caja, 'nombre' | 'tipo'>
+  orden: { customer: { full_name: string } | null } | null
+}
 
 const TIPO_LABELS: Record<CajaTipo, string> = { efectivo: 'Efectivo', bancaria: 'Bancaria' }
 
@@ -225,7 +228,19 @@ export function CajasClient({
                       {m.tipo === 'ingreso' ? 'Ingreso' : 'Egreso'}
                     </span>
                   </td>
-                  <td className="px-4 py-3" style={{ color: 'var(--foreground)' }}>{m.concepto}</td>
+                  <td className="px-4 py-3 relative group" style={{ color: 'var(--foreground)' }}>
+                    <span className="cursor-default">{m.concepto}</span>
+                    {m.orden?.customer?.full_name && (
+                      <div className="absolute left-4 bottom-full mb-1.5 z-20 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150">
+                        <div className="text-xs px-2.5 py-1.5 rounded-lg shadow-lg whitespace-nowrap"
+                          style={{ background: '#1a1a1a', color: '#f5f5f5' }}>
+                          Cliente: {m.orden.customer.full_name}
+                        </div>
+                        <div className="w-2 h-2 rotate-45 mx-3"
+                          style={{ background: '#1a1a1a', marginTop: '-4px' }} />
+                      </div>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted-foreground)' }}>{m.caja?.nombre ?? '—'}</td>
                   <td className="px-4 py-3 font-semibold"
                     style={{ color: m.tipo === 'ingreso' ? '#16a34a' : '#dc2626' }}>

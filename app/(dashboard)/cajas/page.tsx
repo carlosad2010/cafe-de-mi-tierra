@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { CajasClient } from './CajasClient'
 import { Caja, MovimientoCaja } from '@/lib/types'
 
+export const dynamic = 'force-dynamic'
+
 export default async function CajasPage() {
   const supabase = await createClient()
 
@@ -23,14 +25,14 @@ export default async function CajasPage() {
 
   const { data: movimientos } = await supabase
     .from('movimientos_caja')
-    .select('*, caja:cajas(nombre, tipo)')
+    .select('*, caja:cajas(nombre, tipo), orden:orders(customer:customers(full_name))')
     .order('created_at', { ascending: false })
     .limit(100)
 
   return (
     <CajasClient
       cajas={cajas}
-      movimientos={(movimientos ?? []) as (MovimientoCaja & { caja: Pick<Caja, 'nombre' | 'tipo'> })[]}
+      movimientos={(movimientos ?? []) as any}
     />
   )
 }
