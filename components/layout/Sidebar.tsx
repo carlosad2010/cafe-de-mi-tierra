@@ -17,6 +17,7 @@ import {
   Wallet,
   ShoppingBag,
   Settings,
+  BarChart2,
 } from 'lucide-react'
 
 const navItems = [
@@ -26,6 +27,7 @@ const navItems = [
   { href: '/productos',      label: 'Productos',        icon: Package,         roles: ['admin', 'seller'] },
   { href: '/inventario',     label: 'Inventario',       icon: Warehouse,       roles: ['admin', 'seller'] },
   { href: '/facturas',       label: 'Facturas',         icon: FileText,        roles: ['admin', 'seller'] },
+  { href: '/informes',       label: 'Informes',         icon: BarChart2,       roles: ['admin', 'seller'] },
   { href: '/cajas',          label: 'Cajas',            icon: Wallet,          roles: ['admin', 'seller'] },
   { href: '/compras',        label: 'Compras y Gastos', icon: ShoppingBag,     roles: ['admin', 'seller'] },
   { href: '/usuarios',       label: 'Usuarios',         icon: UserCog,         roles: ['admin'] },
