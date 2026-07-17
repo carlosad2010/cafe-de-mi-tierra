@@ -201,8 +201,9 @@ export function ComprasClient({
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border overflow-hidden" style={{ background: '#fff', borderColor: 'var(--border)' }}>
-        <table className="w-full text-sm">
+      <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm" style={{ minWidth: '600px' }}>
           <thead>
             <tr style={{ background: 'var(--secondary)' }}>
               {['Tipo', 'Concepto', 'Proveedor', 'Monto', 'Caja', 'Fecha', 'Notas', 'Acciones'].map(h => (
@@ -255,6 +256,7 @@ export function ComprasClient({
             })}
           </tbody>
         </table>
+        </div>
         {filtered.length === 0 && (
           <div className="py-16 text-center">
             <ShoppingBag size={36} className="mx-auto mb-3" style={{ color: 'var(--muted-foreground)' }} />

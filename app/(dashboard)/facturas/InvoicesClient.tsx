@@ -144,8 +144,9 @@ export function InvoicesClient({ orders }: { orders: Order[] }) {
         <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Pedidos completados · {orders.length} facturas</p>
       </div>
 
-      <div className="rounded-xl border overflow-hidden" style={{ background: '#fff', borderColor: 'var(--border)' }}>
-        <table className="w-full text-sm">
+      <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm" style={{ minWidth: '600px' }}>
           <thead>
             <tr style={{ background: 'var(--secondary)' }}>
               {['#', 'Cliente', 'Fecha', 'Total', 'Método', 'Email', 'Acciones'].map(h => (
@@ -203,6 +204,7 @@ export function InvoicesClient({ orders }: { orders: Order[] }) {
             })}
           </tbody>
         </table>
+        </div>
         {orders.length === 0 && (
           <div className="py-16 text-center">
             <FileText size={40} className="mx-auto mb-3" style={{ color: 'var(--muted-foreground)' }} />

@@ -94,11 +94,12 @@ export function InventoryClient({
       </div>
 
       {/* Stock table */}
-      <div className="rounded-xl border overflow-hidden mb-6" style={{ background: '#fff', borderColor: 'var(--border)' }}>
+      <div className="rounded-xl border mb-6" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
         <div className="px-5 py-4 border-b font-semibold" style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>
           Stock actual
         </div>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm" style={{ minWidth: '600px' }}>
           <thead>
             <tr style={{ background: 'var(--secondary)' }}>
               {['Producto', 'Presentación', 'Tipo', 'Stock actual', 'Stock mínimo', 'Estado'].map(h => (
@@ -127,14 +128,16 @@ export function InventoryClient({
             })}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Movements history */}
-      <div className="rounded-xl border overflow-hidden" style={{ background: '#fff', borderColor: 'var(--border)' }}>
+      <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
         <div className="px-5 py-4 border-b font-semibold" style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>
           Últimos movimientos
         </div>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm" style={{ minWidth: '600px' }}>
           <thead>
             <tr style={{ background: 'var(--secondary)' }}>
               {['Fecha', 'Producto', 'Tipo', 'Cantidad', 'Stock anterior', 'Stock nuevo', 'Razón'].map(h => (
@@ -166,6 +169,7 @@ export function InventoryClient({
             })}
           </tbody>
         </table>
+        </div>
         {movements.length === 0 && (
           <div className="py-12 text-center">
             <Warehouse size={36} className="mx-auto mb-2" style={{ color: 'var(--muted-foreground)' }} />

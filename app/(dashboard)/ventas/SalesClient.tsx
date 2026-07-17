@@ -173,8 +173,9 @@ export function SalesClient({
       </div>
 
       {/* Orders table */}
-      <div className="rounded-xl border overflow-hidden" style={{ background: '#fff', borderColor: 'var(--border)' }}>
-        <table className="w-full text-sm">
+      <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm" style={{ minWidth: '600px' }}>
           <thead>
             <tr style={{ background: 'var(--secondary)' }}>
               {['#', 'Cliente', 'Vendedor', 'Método de pago', 'Total', 'Estado', 'Fecha', 'Acciones'].map(h => (
@@ -217,6 +218,7 @@ export function SalesClient({
             })}
           </tbody>
         </table>
+        </div>
         {filtered.length === 0 && (
           <div className="py-16 text-center">
             <ShoppingCart size={40} className="mx-auto mb-3" style={{ color: 'var(--muted-foreground)' }} />
@@ -297,8 +299,9 @@ export function SalesClient({
 
               {/* Cart */}
               {cart.length > 0 && (
-                <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--border)' }}>
-                  <table className="w-full text-sm">
+                <div className="rounded-xl border" style={{ borderColor: 'var(--border)', overflow: 'hidden' }}>
+                  <div className="overflow-x-auto">
+                  <table className="w-full text-sm" style={{ minWidth: '400px' }}>
                     <thead>
                       <tr style={{ background: 'var(--secondary)' }}>
                         {['Producto', 'Precio unit.', 'Cant.', 'Subtotal', ''].map(h => (
@@ -331,6 +334,7 @@ export function SalesClient({
                       ))}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               )}
 

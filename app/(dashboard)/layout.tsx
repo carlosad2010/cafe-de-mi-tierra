@@ -1,26 +1,23 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { Sidebar } from '@/components/layout/Sidebar'
+import { AppShell } from '@/components/layout/AppShell'
 import { Profile } from '@/lib/types'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
 
   const { data: { session } } = await supabase.auth.getSession()
-
   if (!session) redirect('/login')
-
-  const userId = session.user.id
 
   const { data: profile } = await supabase
     .from('profiles')
     .select('*')
-    .eq('id', userId)
+    .eq('id', session.user.id)
     .single()
 
   if (!profile) {
     await supabase.from('profiles').insert({
-      id: userId,
+      id: session.user.id,
       email: session.user.email!,
       full_name: session.user.email!,
       role: 'seller',
@@ -28,27 +25,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
     const { data: newProfile } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', userId)
+      .eq('id', session.user.id)
       .single()
 
     if (!newProfile) redirect('/login')
 
-    return (
-      <div className="flex min-h-screen">
-        <Sidebar profile={newProfile as Profile} />
-        <main className="flex-1 overflow-auto" style={{ background: 'var(--background)' }}>
-          {children}
-        </main>
-      </div>
-    )
+    return <AppShell profile={newProfile as Profile}>{children}</AppShell>
   }
 
-  return (
-    <div className="flex min-h-screen">
-      <Sidebar profile={profile as Profile} />
-      <main className="flex-1 overflow-auto" style={{ background: 'var(--background)' }}>
-        {children}
-      </main>
-    </div>
-  )
+  return <AppShell profile={profile as Profile}>{children}</AppShell>
 }

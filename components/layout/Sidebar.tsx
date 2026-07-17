@@ -18,6 +18,7 @@ import {
   ShoppingBag,
   Settings,
   BarChart2,
+  X,
 } from 'lucide-react'
 
 const navItems = [
@@ -34,9 +35,9 @@ const navItems = [
   { href: '/configuracion',  label: 'Configuración',    icon: Settings,        roles: ['admin'] },
 ]
 
-export function Sidebar({ profile }: { profile: Profile }) {
+export function Sidebar({ profile, onClose }: { profile: Profile; onClose?: () => void }) {
   const pathname = usePathname()
-  const router = useRouter()
+  const router   = useRouter()
 
   async function handleLogout() {
     const supabase = createClient()
@@ -49,32 +50,44 @@ export function Sidebar({ profile }: { profile: Profile }) {
 
   return (
     <aside
-      className="flex flex-col w-60 min-h-screen border-r"
-      style={{ background: '#fff', borderColor: 'var(--border)' }}
-    >
-      {/* Logo */}
+      className="flex flex-col w-64 h-screen border-r"
+      style={{ background: '#fff', borderColor: 'var(--border)' }}>
+
+      {/* ── Logo ── */}
       <div className="flex items-center gap-3 px-4 py-5 border-b" style={{ borderColor: 'var(--border)' }}>
-        <div className="flex items-center justify-center w-9 h-9 rounded-xl" style={{ background: 'var(--primary)' }}>
+        <div className="flex items-center justify-center w-9 h-9 rounded-xl shrink-0"
+          style={{ background: 'var(--primary)' }}>
           <Coffee size={18} color="#fdf8f3" />
         </div>
-        <div>
-          <p className="text-sm font-bold leading-tight" style={{ color: 'var(--foreground)' }}>Café de mi Tierra</p>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold leading-tight truncate" style={{ color: 'var(--foreground)' }}>
+            Café de mi Tierra
+          </p>
           <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Gestión</p>
         </div>
+        {/* Close — only on mobile */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="lg:hidden p-1.5 rounded-lg transition-all duration-150 hover:scale-110 active:scale-90"
+            style={{ background: 'var(--secondary)', color: 'var(--muted-foreground)' }}
+            aria-label="Cerrar menú">
+            <X size={15} />
+          </button>
+        )}
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
+      {/* ── Nav ── */}
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {visibleItems.map(item => {
-          const Icon = item.icon
+          const Icon     = item.icon
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
           return (
             <Link
               key={item.href}
               href={item.href}
               className="sidebar-nav-link"
-              style={isActive ? { background: 'var(--primary)', color: 'var(--primary-foreground)' } : {}}
-            >
+              style={isActive ? { background: 'var(--primary)', color: 'var(--primary-foreground)' } : {}}>
               <Icon size={17} />
               {item.label}
             </Link>
@@ -82,10 +95,12 @@ export function Sidebar({ profile }: { profile: Profile }) {
         })}
       </nav>
 
-      {/* User */}
+      {/* ── User ── */}
       <div className="px-3 py-4 border-t space-y-1" style={{ borderColor: 'var(--border)' }}>
-        <div className="px-3 py-2 rounded-lg" style={{ background: 'var(--muted)' }}>
-          <p className="text-sm font-medium truncate" style={{ color: 'var(--foreground)' }}>{profile.full_name}</p>
+        <div className="px-3 py-2.5 rounded-xl" style={{ background: 'var(--muted)' }}>
+          <p className="text-sm font-semibold truncate" style={{ color: 'var(--foreground)' }}>
+            {profile.full_name}
+          </p>
           <p className="text-xs capitalize" style={{ color: 'var(--muted-foreground)' }}>
             {profile.role === 'admin' ? 'Administrador' : 'Vendedor'}
           </p>
@@ -93,8 +108,7 @@ export function Sidebar({ profile }: { profile: Profile }) {
         <button
           onClick={handleLogout}
           className="sidebar-nav-link w-full text-left"
-          style={{ color: '#dc2626' }}
-        >
+          style={{ color: '#dc2626' }}>
           <LogOut size={17} />
           Cerrar sesión
         </button>

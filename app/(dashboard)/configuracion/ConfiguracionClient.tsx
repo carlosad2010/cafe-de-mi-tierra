@@ -115,8 +115,9 @@ function LookupPanel({
     <div className="max-w-2xl">
       <p className="text-sm mb-5" style={{ color: 'var(--muted-foreground)' }}>{description}</p>
 
-      <div className="rounded-xl border overflow-hidden" style={{ background: '#fff', borderColor: 'var(--border)' }}>
-        <table className="w-full text-sm">
+      <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm" style={{ minWidth: '400px' }}>
           <thead>
             <tr style={{ background: 'var(--secondary)' }}>
               {['Orden', 'Nombre', 'Estado', ''].map(h => (
@@ -229,6 +230,7 @@ function LookupPanel({
             )}
           </tbody>
         </table>
+        </div>
 
         {!adding && (
           <div className="px-4 py-3 border-t" style={{ borderColor: 'var(--border)' }}>

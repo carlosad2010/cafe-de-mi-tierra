@@ -439,7 +439,7 @@ export function InformesClient({
               })), 'ventas-detalle.csv'
             )} />}>
             <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+              <table className="w-full text-xs" style={{ minWidth: '600px' }}>
                 <thead>
                   <tr style={{ background: '#FAFAF9' }}>
                     {['#', 'Fecha', 'Cliente', 'Vendedor', 'Método', 'Descuento', 'Total'].map(h => (
@@ -574,8 +574,8 @@ export function InformesClient({
                 filteredCompras.map(c => ({ Fecha: c.fecha, Tipo: c.tipo, Concepto: c.concepto, Proveedor: c.proveedor ?? '', Monto: c.monto })),
                 'compras.csv'
               )} />}>
-              <div className="overflow-y-auto" style={{ maxHeight: '260px' }}>
-                <table className="w-full text-xs">
+              <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '260px' }}>
+                <table className="w-full text-xs" style={{ minWidth: '400px' }}>
                   <thead className="sticky top-0" style={{ background: '#FAFAF9' }}>
                     <tr>
                       {['Fecha', 'Tipo', 'Concepto', 'Monto'].map(h => (
@@ -648,7 +648,7 @@ export function InformesClient({
               })), 'rentabilidad.csv'
             )} />}>
             <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+              <table className="w-full text-xs" style={{ minWidth: '700px' }}>
                 <thead>
                   <tr style={{ background: '#FAFAF9' }}>
                     {['Producto', 'Costo', 'Precio 1', 'Ganancia P1', 'Margen P1', 'Precio 2', 'Ganancia P2', 'Margen P2', 'Stock'].map(h => (

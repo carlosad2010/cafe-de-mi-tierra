@@ -103,22 +103,21 @@ export function ProductsClient({ initialProducts, presentations, tiposProducto }
   const profit2 = calcProfit(precio2V, costP)
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 sm:p-6">
+      <div className="page-header">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>Productos</h1>
           <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{products.length} productos registrados</p>
         </div>
-        <button onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
-          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+        <button onClick={openCreate} className="btn btn-primary">
           <Plus size={16} /> Nuevo producto
         </button>
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border overflow-hidden" style={{ background: '#fff', borderColor: 'var(--border)' }}>
-        <table className="w-full text-sm">
+      <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm" style={{ minWidth: '600px' }}>
           <thead>
             <tr style={{ background: 'var(--secondary)' }}>
               {['Producto', 'Presentación', 'Tipo', 'Costo', 'Precio 1', 'Precio 2', 'Margen', 'Stock', 'Estado', ''].map(h => (
@@ -167,6 +166,7 @@ export function ProductsClient({ initialProducts, presentations, tiposProducto }
             ))}
           </tbody>
         </table>
+        </div>
         {products.length === 0 && (
           <div className="py-16 text-center">
             <Package size={40} className="mx-auto mb-3" style={{ color: 'var(--muted-foreground)' }} />
@@ -177,8 +177,8 @@ export function ProductsClient({ initialProducts, presentations, tiposProducto }
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: 'rgba(0,0,0,0.4)' }}>
-          <div className="w-full max-w-lg rounded-2xl p-6 shadow-xl max-h-[90vh] overflow-y-auto" style={{ background: '#fff' }}>
+        <div className="modal-overlay">
+          <div className="modal-box">
             <h2 className="text-lg font-semibold mb-5" style={{ color: 'var(--foreground)' }}>
               {editing ? 'Editar producto' : 'Nuevo producto'}
             </h2>
@@ -259,14 +259,10 @@ export function ProductsClient({ initialProducts, presentations, tiposProducto }
               {error && <p className="text-sm p-3 rounded-lg" style={{ background: '#fef2f2', color: '#dc2626' }}>{error}</p>}
 
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowModal(false)}
-                  className="flex-1 py-2.5 rounded-lg text-sm font-medium border"
-                  style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>
+                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary flex-1">
                   Cancelar
                 </button>
-                <button type="submit" disabled={saving}
-                  className="flex-1 py-2.5 rounded-lg text-sm font-medium disabled:opacity-60"
-                  style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+                <button type="submit" disabled={saving} className="btn btn-primary flex-1">
                   {saving ? 'Guardando...' : 'Guardar'}
                 </button>
               </div>
@@ -275,7 +271,6 @@ export function ProductsClient({ initialProducts, presentations, tiposProducto }
         </div>
       )}
 
-      <style>{`.input-field { width:100%; border-radius:0.5rem; border:1px solid var(--border); padding:0.5rem 0.75rem; font-size:0.875rem; background:var(--background); outline:none; }`}</style>
     </div>
   )
 }

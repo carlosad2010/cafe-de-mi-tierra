@@ -205,8 +205,9 @@ export function CajasClient({
           </div>
         </div>
 
-        <div className="rounded-xl border overflow-hidden" style={{ background: '#fff', borderColor: 'var(--border)' }}>
-          <table className="w-full text-sm">
+        <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm" style={{ minWidth: '600px' }}>
             <thead>
               <tr style={{ background: 'var(--secondary)' }}>
                 {['Fecha', 'Tipo', 'Concepto', 'Caja', 'Monto'].map(h => (
@@ -250,6 +251,7 @@ export function CajasClient({
               ))}
             </tbody>
           </table>
+          </div>
           {movimientosFiltrados.length === 0 && (
             <div className="py-16 text-center">
               <Wallet size={36} className="mx-auto mb-3" style={{ color: 'var(--muted-foreground)' }} />

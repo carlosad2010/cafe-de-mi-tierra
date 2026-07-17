@@ -111,7 +111,8 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border overflow-x-auto" style={{ background: '#fff', borderColor: 'var(--border)' }}>
+      <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
+        <div className="overflow-x-auto">
         <table className="w-full text-sm" style={{ minWidth: '900px' }}>
           <thead>
             <tr style={{ background: 'var(--secondary)' }}>
@@ -147,6 +148,7 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
             ))}
           </tbody>
         </table>
+        </div>
         {filtered.length === 0 && (
           <div className="py-16 text-center">
             <Users size={40} className="mx-auto mb-3" style={{ color: 'var(--muted-foreground)' }} />
