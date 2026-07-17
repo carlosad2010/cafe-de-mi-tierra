@@ -113,26 +113,32 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
       {/* Table */}
       <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
         <div className="overflow-x-auto">
-        <table className="w-full text-sm" style={{ minWidth: '900px' }}>
+        <table className="w-full text-sm">
           <thead>
             <tr style={{ background: 'var(--secondary)' }}>
-              {['Nombre', 'Documento', 'Teléfono', 'Contacto', 'Tel. Contacto', 'Correo', 'Ciudad', 'Estado', ''].map(h => (
-                <th key={h} className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>{h}</th>
-              ))}
+              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Nombre</th>
+              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Documento</th>
+              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Teléfono</th>
+              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Contacto</th>
+              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Tel. Contacto</th>
+              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Correo</th>
+              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Ciudad</th>
+              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Estado</th>
+              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}></th>
             </tr>
           </thead>
           <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
             {filtered.map(c => (
               <tr key={c.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-4 py-3 font-medium" style={{ color: 'var(--foreground)' }}>{c.full_name}</td>
-                <td className="px-4 py-3" style={{ color: 'var(--muted-foreground)' }}>
+                <td className="px-4 py-3 hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>
                   {c.document_type && c.document_number ? `${c.document_type} ${c.document_number}` : '—'}
                 </td>
                 <td className="px-4 py-3" style={{ color: 'var(--muted-foreground)' }}>{c.phone ?? '—'}</td>
-                <td className="px-4 py-3" style={{ color: 'var(--muted-foreground)' }}>{c.contacto ?? '—'}</td>
-                <td className="px-4 py-3" style={{ color: 'var(--muted-foreground)' }}>{c.telefono_contacto ?? '—'}</td>
-                <td className="px-4 py-3" style={{ color: 'var(--muted-foreground)' }}>{c.email ?? '—'}</td>
-                <td className="px-4 py-3" style={{ color: 'var(--muted-foreground)' }}>{c.city ?? '—'}</td>
+                <td className="px-4 py-3 hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{c.contacto ?? '—'}</td>
+                <td className="px-4 py-3 hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{c.telefono_contacto ?? '—'}</td>
+                <td className="px-4 py-3 hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{c.email ?? '—'}</td>
+                <td className="px-4 py-3 hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{c.city ?? '—'}</td>
                 <td className="px-4 py-3">
                   <span className="text-xs px-2 py-0.5 rounded-full font-medium"
                     style={{ background: c.active ? '#dcfce7' : '#fee2e2', color: c.active ? '#16a34a' : '#dc2626' }}>

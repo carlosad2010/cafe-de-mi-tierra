@@ -146,12 +146,16 @@ export function InvoicesClient({ orders }: { orders: Order[] }) {
 
       <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
         <div className="overflow-x-auto">
-        <table className="w-full text-sm" style={{ minWidth: '600px' }}>
+        <table className="w-full text-sm">
           <thead>
             <tr style={{ background: 'var(--secondary)' }}>
-              {['#', 'Cliente', 'Fecha', 'Total', 'Método', 'Email', 'Acciones'].map(h => (
-                <th key={h} className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>{h}</th>
-              ))}
+              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>#</th>
+              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Cliente</th>
+              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Fecha</th>
+              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Total</th>
+              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Método</th>
+              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Email</th>
+              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
@@ -164,10 +168,10 @@ export function InvoicesClient({ orders }: { orders: Order[] }) {
                     <div>{customer?.full_name ?? 'Sin cliente'}</div>
                     {customer?.email && <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{customer.email}</div>}
                   </td>
-                  <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted-foreground)' }}>{formatDateTime(order.created_at)}</td>
+                  <td className="px-4 py-3 text-xs hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{formatDateTime(order.created_at)}</td>
                   <td className="px-4 py-3 font-semibold" style={{ color: 'var(--primary)' }}>{formatCOP(order.total)}</td>
-                  <td className="px-4 py-3" style={{ color: 'var(--muted-foreground)' }}>{PAYMENT_METHODS[order.payment_method]}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{PAYMENT_METHODS[order.payment_method]}</td>
+                  <td className="px-4 py-3 hidden sm:table-cell">
                     {order.email_sent ? (
                       <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#dcfce7', color: '#16a34a' }}>Enviado</span>
                     ) : (

@@ -56,12 +56,15 @@ export function UsersClient({ initialProfiles }: { initialProfiles: Profile[] })
 
       <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
         <div className="overflow-x-auto">
-        <table className="w-full text-sm" style={{ minWidth: '600px' }}>
+        <table className="w-full text-sm">
           <thead>
             <tr style={{ background: 'var(--secondary)' }}>
-              {['Nombre', 'Correo', 'Rol', 'Estado', 'Creado', 'Acción'].map(h => (
-                <th key={h} className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>{h}</th>
-              ))}
+              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Nombre</th>
+              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Correo</th>
+              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Rol</th>
+              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Estado</th>
+              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Creado</th>
+              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Acción</th>
             </tr>
           </thead>
           <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
@@ -82,7 +85,7 @@ export function UsersClient({ initialProfiles }: { initialProfiles: Profile[] })
                     {p.active ? 'Activo' : 'Inactivo'}
                   </button>
                 </td>
-                <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted-foreground)' }}>{formatDate(p.created_at)}</td>
+                <td className="px-4 py-3 text-xs hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{formatDate(p.created_at)}</td>
                 <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted-foreground)' }}>
                   {p.active ? 'Desactivar' : 'Activar'}
                 </td>

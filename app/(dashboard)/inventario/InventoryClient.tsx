@@ -99,12 +99,15 @@ export function InventoryClient({
           Stock actual
         </div>
         <div className="overflow-x-auto">
-        <table className="w-full text-sm" style={{ minWidth: '600px' }}>
+        <table className="w-full text-sm">
           <thead>
             <tr style={{ background: 'var(--secondary)' }}>
-              {['Producto', 'Presentación', 'Tipo', 'Stock actual', 'Stock mínimo', 'Estado'].map(h => (
-                <th key={h} className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>{h}</th>
-              ))}
+              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Producto</th>
+              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Presentación</th>
+              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Tipo</th>
+              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Stock actual</th>
+              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Stock mínimo</th>
+              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Estado</th>
             </tr>
           </thead>
           <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
@@ -113,10 +116,10 @@ export function InventoryClient({
               return (
                 <tr key={p.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium" style={{ color: 'var(--foreground)' }}>{p.name}</td>
-                  <td className="px-4 py-3"><span className="px-2 py-0.5 rounded-full text-xs" style={{ background: 'var(--secondary)', color: 'var(--primary)' }}>{p.presentation?.nombre}</span></td>
-                  <td className="px-4 py-3 capitalize" style={{ color: 'var(--muted-foreground)' }}>{p.tipo?.nombre}</td>
+                  <td className="px-4 py-3 hidden sm:table-cell"><span className="px-2 py-0.5 rounded-full text-xs" style={{ background: 'var(--secondary)', color: 'var(--primary)' }}>{p.presentation?.nombre}</span></td>
+                  <td className="px-4 py-3 capitalize hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{p.tipo?.nombre}</td>
                   <td className="px-4 py-3 font-bold" style={{ color: low ? '#dc2626' : '#16a34a' }}>{p.stock}</td>
-                  <td className="px-4 py-3" style={{ color: 'var(--muted-foreground)' }}>{p.min_stock}</td>
+                  <td className="px-4 py-3 hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{p.min_stock}</td>
                   <td className="px-4 py-3">
                     <span className="text-xs px-2 py-0.5 rounded-full font-medium"
                       style={{ background: low ? '#fee2e2' : '#dcfce7', color: low ? '#dc2626' : '#16a34a' }}>
@@ -137,12 +140,16 @@ export function InventoryClient({
           Últimos movimientos
         </div>
         <div className="overflow-x-auto">
-        <table className="w-full text-sm" style={{ minWidth: '600px' }}>
+        <table className="w-full text-sm">
           <thead>
             <tr style={{ background: 'var(--secondary)' }}>
-              {['Fecha', 'Producto', 'Tipo', 'Cantidad', 'Stock anterior', 'Stock nuevo', 'Razón'].map(h => (
-                <th key={h} className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>{h}</th>
-              ))}
+              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Fecha</th>
+              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Producto</th>
+              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Tipo</th>
+              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Cantidad</th>
+              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Stock anterior</th>
+              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Stock nuevo</th>
+              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Razón</th>
             </tr>
           </thead>
           <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
@@ -150,7 +157,7 @@ export function InventoryClient({
               const mt = MOVEMENT_TYPES.find(t => t.value === m.type)
               return (
                 <tr key={m.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted-foreground)' }}>{formatDateTime(m.created_at)}</td>
+                  <td className="px-4 py-3 text-xs hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{formatDateTime(m.created_at)}</td>
                   <td className="px-4 py-3" style={{ color: 'var(--foreground)' }}>
                     {(m as any).product?.name ?? '—'}
                   </td>
@@ -161,9 +168,9 @@ export function InventoryClient({
                     </span>
                   </td>
                   <td className="px-4 py-3 font-medium" style={{ color: mt?.color }}>{m.quantity > 0 ? '+' : ''}{m.quantity}</td>
-                  <td className="px-4 py-3" style={{ color: 'var(--muted-foreground)' }}>{m.previous_stock}</td>
-                  <td className="px-4 py-3 font-medium" style={{ color: 'var(--foreground)' }}>{m.new_stock}</td>
-                  <td className="px-4 py-3" style={{ color: 'var(--muted-foreground)' }}>{m.reason ?? '—'}</td>
+                  <td className="px-4 py-3 hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{m.previous_stock}</td>
+                  <td className="px-4 py-3 font-medium hidden sm:table-cell" style={{ color: 'var(--foreground)' }}>{m.new_stock}</td>
+                  <td className="px-4 py-3 hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{m.reason ?? '—'}</td>
                 </tr>
               )
             })}

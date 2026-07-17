@@ -203,12 +203,17 @@ export function ComprasClient({
       {/* Table */}
       <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
         <div className="overflow-x-auto">
-        <table className="w-full text-sm" style={{ minWidth: '600px' }}>
+        <table className="w-full text-sm">
           <thead>
             <tr style={{ background: 'var(--secondary)' }}>
-              {['Tipo', 'Concepto', 'Proveedor', 'Monto', 'Caja', 'Fecha', 'Notas', 'Acciones'].map(h => (
-                <th key={h} className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>{h}</th>
-              ))}
+              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Tipo</th>
+              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Concepto</th>
+              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Proveedor</th>
+              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Monto</th>
+              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Caja</th>
+              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Fecha</th>
+              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Notas</th>
+              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
@@ -223,9 +228,9 @@ export function ComprasClient({
                     </span>
                   </td>
                   <td className="px-4 py-3 font-medium" style={{ color: 'var(--foreground)' }}>{c.concepto}</td>
-                  <td className="px-4 py-3" style={{ color: 'var(--muted-foreground)' }}>{c.proveedor ?? '—'}</td>
+                  <td className="px-4 py-3 hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{c.proveedor ?? '—'}</td>
                   <td className="px-4 py-3 font-semibold" style={{ color: '#dc2626' }}>{formatCOP(c.monto)}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 hidden sm:table-cell">
                     {c.caja && (
                       <span className="text-xs px-2 py-0.5 rounded-full font-medium"
                         style={{
@@ -236,8 +241,8 @@ export function ComprasClient({
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted-foreground)' }}>{formatDate(c.fecha)}</td>
-                  <td className="px-4 py-3 text-xs max-w-[160px] truncate" style={{ color: 'var(--muted-foreground)' }}>
+                  <td className="px-4 py-3 text-xs hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{formatDate(c.fecha)}</td>
+                  <td className="px-4 py-3 text-xs max-w-[160px] truncate hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>
                     {c.notas ?? '—'}
                   </td>
                   <td className="px-4 py-3">

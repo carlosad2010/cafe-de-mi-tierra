@@ -117,12 +117,13 @@ function LookupPanel({
 
       <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
         <div className="overflow-x-auto">
-        <table className="w-full text-sm" style={{ minWidth: '400px' }}>
+        <table className="w-full text-sm">
           <thead>
             <tr style={{ background: 'var(--secondary)' }}>
-              {['Orden', 'Nombre', 'Estado', ''].map(h => (
-                <th key={h} className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>{h}</th>
-              ))}
+              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Orden</th>
+              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Nombre</th>
+              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Estado</th>
+              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}></th>
             </tr>
           </thead>
           <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
@@ -131,7 +132,7 @@ function LookupPanel({
               const active = isActive(item)
               return (
                 <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 w-24">
+                  <td className="px-4 py-3 w-24 hidden sm:table-cell">
                     {isEd ? (
                       <input
                         type="number" value={editOrden}
@@ -193,7 +194,7 @@ function LookupPanel({
             {/* Fila de agregar nuevo */}
             {adding && (
               <tr style={{ background: '#fafafa' }}>
-                <td className="px-4 py-3 w-24">
+                <td className="px-4 py-3 w-24 hidden sm:table-cell">
                   <input
                     type="number" value={newOrden}
                     onChange={e => setNewOrden(Number(e.target.value))}
