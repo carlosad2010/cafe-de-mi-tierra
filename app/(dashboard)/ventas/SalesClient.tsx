@@ -2,27 +2,27 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Order, Product, Customer, PaymentMethod } from '@/lib/types'
+import { Order, Product, Customer, MetodoPago } from '@/lib/types'
 import { formatCOP, formatDateTime, ORDER_STATUS, PAYMENT_METHODS } from '@/lib/utils'
 import { Plus, ShoppingCart, Pencil, Trash2, Check, X } from 'lucide-react'
 
 type CartItem = { product: Product; quantity: number }
 
-const EMPTY_ORDER = {
-  customer_id: '', payment_method: 'efectivo' as PaymentMethod,
-  notes: '', discount: '0', price_tier: 'precio1' as 'precio1' | 'precio2',
-}
-
 export function SalesClient({
-  initialOrders, products, customers,
+  initialOrders, products, customers, metodosPago,
 }: {
   initialOrders: Order[]
   products: Product[]
   customers: Customer[]
+  metodosPago: MetodoPago[]
 }) {
+  const defaultMetodo = metodosPago[0]?.nombre ?? 'Efectivo'
   const [orders, setOrders] = useState(initialOrders)
   const [showModal, setShowModal] = useState(false)
-  const [form, setForm] = useState(EMPTY_ORDER)
+  const [form, setForm] = useState({
+    customer_id: '', payment_method: defaultMetodo,
+    notes: '', discount: '0', price_tier: 'precio1' as 'precio1' | 'precio2',
+  })
   const [cart, setCart] = useState<CartItem[]>([])
   const [selectedProduct, setSelectedProduct] = useState('')
   const [selectedQty, setSelectedQty] = useState('1')
@@ -103,7 +103,7 @@ export function SalesClient({
     setOrders(prev => [fullOrder, ...prev])
     setShowModal(false)
     setCart([])
-    setForm(EMPTY_ORDER)
+    setForm({ customer_id: '', payment_method: defaultMetodo, notes: '', discount: '0', price_tier: 'precio1' })
     setSaving(false)
   }
 
@@ -115,24 +115,38 @@ export function SalesClient({
       .single()
 
     if (data && status === 'completado') {
-      // Find the active caja that matches the payment method
-      const cajaTipo = data.payment_method === 'efectivo' ? 'efectivo' : 'bancaria'
-      const { data: caja } = await supabase
-        .from('cajas')
-        .select('id')
-        .eq('tipo', cajaTipo)
-        .eq('activa', true)
-        .limit(1)
-        .maybeSingle()
+      // 1. Find caja by metodo_pago_id (new association)
+      const matchedMetodo = metodosPago.find(m => m.nombre === data.payment_method)
+      let cajaDest: string | null = null
 
-      if (caja) {
+      if (matchedMetodo) {
+        const { data: cajaPorMetodo } = await supabase
+          .from('cajas').select('id')
+          .eq('activa', true).eq('metodo_pago_id', matchedMetodo.id)
+          .limit(1).maybeSingle()
+        cajaDest = cajaPorMetodo?.id ?? null
+      }
+
+      // 2. Fallback: find by tipo (backward compat for cajas without metodo_pago_id)
+      if (!cajaDest) {
+        const cajaTipo = (matchedMetodo?.tipo === 'efectivo' || data.payment_method === 'efectivo' || data.payment_method === 'Efectivo')
+          ? 'efectivo' : 'bancaria'
+        const { data: cajaPorTipo } = await supabase
+          .from('cajas').select('id')
+          .eq('activa', true).eq('tipo', cajaTipo)
+          .limit(1).maybeSingle()
+        cajaDest = cajaPorTipo?.id ?? null
+      }
+
+      if (cajaDest) {
         const { data: { user } } = await supabase.auth.getUser()
+        const isEfectivo = matchedMetodo?.tipo === 'efectivo' || data.payment_method === 'efectivo'
         await supabase.from('movimientos_caja').insert({
-          caja_id: caja.id,
+          caja_id: cajaDest,
           tipo: 'ingreso',
           concepto: `Venta #${data.order_number}`,
           monto: data.total,
-          referencia: data.payment_method !== 'efectivo' ? PAYMENT_METHODS[data.payment_method] : null,
+          referencia: isEfectivo ? null : (PAYMENT_METHODS[data.payment_method] ?? data.payment_method),
           orden_id: data.id,
           created_by: user?.id ?? null,
         })
@@ -151,7 +165,7 @@ export function SalesClient({
           <h1 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>Ventas</h1>
           <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{orders.length} pedidos registrados</p>
         </div>
-        <button onClick={() => { setForm(EMPTY_ORDER); setCart([]); setError(''); setShowModal(true) }}
+        <button onClick={() => { setForm({ customer_id: '', payment_method: defaultMetodo, notes: '', discount: '0', price_tier: 'precio1' }); setCart([]); setError(''); setShowModal(true) }}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
           style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
           <Plus size={16} /> Nuevo pedido
@@ -250,8 +264,10 @@ export function SalesClient({
                   </select>
                 </Field>
                 <Field label="Método de pago *">
-                  <select required value={form.payment_method} onChange={e => setForm(f => ({ ...f, payment_method: e.target.value as PaymentMethod }))} className="input-field">
-                    {Object.entries(PAYMENT_METHODS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  <select required value={form.payment_method}
+                    onChange={e => setForm(f => ({ ...f, payment_method: e.target.value }))}
+                    className="input-field">
+                    {metodosPago.map(m => <option key={m.id} value={m.nombre}>{m.nombre}</option>)}
                   </select>
                 </Field>
               </div>

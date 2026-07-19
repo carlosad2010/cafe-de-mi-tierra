@@ -75,8 +75,17 @@ export type Customer = {
   updated_at: string
 }
 
+export type MetodoPago = {
+  id: string
+  nombre: string
+  tipo: 'efectivo' | 'digital' | 'tarjeta' | 'otro'
+  activo: boolean
+  orden: number
+  created_at: string
+}
+
 export type OrderStatus = 'pendiente' | 'completado' | 'cancelado'
-export type PaymentMethod = 'efectivo' | 'transferencia' | 'tarjeta' | 'nequi' | 'daviplata' | 'otro'
+export type PaymentMethod = string   // dynamic from metodos_pago.nombre
 
 export type Order = {
   id: string
@@ -150,6 +159,8 @@ export type Caja = {
   tipo: CajaTipo
   saldo_inicial: number
   activa: boolean
+  metodo_pago_id: string | null
+  metodo_pago?: MetodoPago
   created_at: string
   updated_at: string
   saldo_actual?: number

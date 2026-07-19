@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Presentation, TipoProducto, Configuracion } from '@/lib/types'
-import { Plus, Pencil, Check, X, Coffee, Package, Building2 } from 'lucide-react'
+import { Presentation, TipoProducto, Configuracion, MetodoPago } from '@/lib/types'
+import { Plus, Pencil, Check, X, Coffee, Package, Building2, CreditCard } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────
 type LookupItem = {
@@ -15,7 +15,7 @@ type LookupItem = {
   activo?: boolean
 }
 
-type Tab = 'presentaciones' | 'tipos' | 'negocio'
+type Tab = 'presentaciones' | 'tipos' | 'metodos_pago' | 'negocio'
 
 const TABS: { id: Tab; label: string; icon: React.ElementType; desc: string }[] = [
   {
@@ -31,12 +31,256 @@ const TABS: { id: Tab; label: string; icon: React.ElementType; desc: string }[] 
     desc: 'Categorías de preparación (ej: grano, molido, descafeinado, blend especial).',
   },
   {
+    id: 'metodos_pago',
+    label: 'Métodos de Pago',
+    icon: CreditCard,
+    desc: 'Medios de pago aceptados — aparecen en el módulo de Ventas y al crear cajas.',
+  },
+  {
     id: 'negocio',
     label: 'Negocio',
     icon: Building2,
     desc: 'Información del negocio que aparece en facturas y documentos.',
   },
 ]
+
+// ─── Tipo labels for MetodoPago ───────────────────────────────
+const TIPO_METODO: Record<string, string> = {
+  efectivo: 'Efectivo',
+  digital:  'Digital',
+  tarjeta:  'Tarjeta',
+  otro:     'Otro',
+}
+
+// ─── MetodosPagoPanel ─────────────────────────────────────────
+function MetodosPagoPanel({ initialItems }: { initialItems: MetodoPago[] }) {
+  const [items, setItems]         = useState([...initialItems].sort((a, b) => a.orden - b.orden))
+  const [editing, setEditing]     = useState<string | null>(null)
+  const [editNombre, setEditNombre] = useState('')
+  const [editTipo, setEditTipo]   = useState<MetodoPago['tipo']>('efectivo')
+  const [editOrden, setEditOrden] = useState(0)
+  const [adding, setAdding]       = useState(false)
+  const [newNombre, setNewNombre] = useState('')
+  const [newTipo, setNewTipo]     = useState<MetodoPago['tipo']>('digital')
+  const [newOrden, setNewOrden]   = useState(initialItems.length + 1)
+  const [busy, setBusy]           = useState(false)
+  const [error, setError]         = useState('')
+
+  async function toggleActive(item: MetodoPago) {
+    const supabase = createClient()
+    const { error: err } = await supabase
+      .from('metodos_pago').update({ activo: !item.activo }).eq('id', item.id)
+    if (!err) setItems(prev => prev.map(i => i.id === item.id ? { ...i, activo: !i.activo } : i))
+  }
+
+  function startEdit(item: MetodoPago) {
+    setEditing(item.id)
+    setEditNombre(item.nombre)
+    setEditTipo(item.tipo)
+    setEditOrden(item.orden)
+    setError('')
+  }
+
+  async function saveEdit(id: string) {
+    if (!editNombre.trim()) return
+    setBusy(true)
+    setError('')
+    const supabase = createClient()
+    const { error: err } = await supabase
+      .from('metodos_pago')
+      .update({ nombre: editNombre.trim(), tipo: editTipo, orden: editOrden })
+      .eq('id', id)
+    if (err) { setError(err.message); setBusy(false); return }
+    setItems(prev =>
+      prev.map(i => i.id === id ? { ...i, nombre: editNombre.trim(), tipo: editTipo, orden: editOrden } : i)
+        .sort((a, b) => a.orden - b.orden)
+    )
+    setEditing(null)
+    setBusy(false)
+  }
+
+  async function handleAdd() {
+    if (!newNombre.trim()) return
+    setBusy(true)
+    setError('')
+    const supabase = createClient()
+    const { data, error: err } = await supabase
+      .from('metodos_pago')
+      .insert({ nombre: newNombre.trim(), tipo: newTipo, orden: newOrden, activo: true })
+      .select()
+      .single()
+    if (err) { setError(err.message); setBusy(false); return }
+    setItems(prev => [...prev, data as MetodoPago].sort((a, b) => a.orden - b.orden))
+    setAdding(false)
+    setNewNombre('')
+    setNewTipo('digital')
+    setNewOrden(items.length + 2)
+    setBusy(false)
+  }
+
+  const tipoSelect = (
+    value: MetodoPago['tipo'],
+    onChange: (v: MetodoPago['tipo']) => void,
+    extraClass = ''
+  ) => (
+    <select
+      value={value}
+      onChange={e => onChange(e.target.value as MetodoPago['tipo'])}
+      className={`border rounded-md px-2 py-1 text-sm outline-none ${extraClass}`}
+      style={{ borderColor: 'var(--border)', background: 'var(--background)' }}
+    >
+      {Object.entries(TIPO_METODO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+    </select>
+  )
+
+  return (
+    <div className="max-w-2xl">
+      <p className="text-sm mb-5" style={{ color: 'var(--muted-foreground)' }}>
+        Métodos de pago aceptados — aparecen en el módulo de Ventas y al crear cajas.
+      </p>
+
+      <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ background: 'var(--secondary)' }}>
+                <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Nombre</th>
+                <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Tipo</th>
+                <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Orden</th>
+                <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Estado</th>
+                <th className="px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
+              {items.map(item => {
+                const isEd = editing === item.id
+                return (
+                  <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3 font-medium" style={{ color: 'var(--foreground)' }}>
+                      {isEd ? (
+                        <input
+                          value={editNombre} onChange={e => setEditNombre(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && saveEdit(item.id)}
+                          className="border rounded-md px-2 py-1 text-sm outline-none w-36"
+                          style={{ borderColor: 'var(--primary)' }}
+                          autoFocus
+                        />
+                      ) : item.nombre}
+                    </td>
+                    <td className="px-4 py-3">
+                      {isEd
+                        ? tipoSelect(editTipo, setEditTipo, 'w-28')
+                        : (
+                          <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                            style={{ background: 'var(--secondary)', color: 'var(--primary)' }}>
+                            {TIPO_METODO[item.tipo]}
+                          </span>
+                        )
+                      }
+                    </td>
+                    <td className="px-4 py-3 hidden sm:table-cell">
+                      {isEd ? (
+                        <input type="number" value={editOrden}
+                          onChange={e => setEditOrden(Number(e.target.value))}
+                          className="w-16 border rounded-md px-2 py-1 text-sm text-center outline-none"
+                          style={{ borderColor: 'var(--border)' }}
+                        />
+                      ) : (
+                        <span style={{ color: 'var(--muted-foreground)' }}>{item.orden}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => toggleActive(item)}
+                        className="text-xs px-2 py-0.5 rounded-full font-medium transition-colors"
+                        style={{ background: item.activo ? '#dcfce7' : '#fee2e2', color: item.activo ? '#16a34a' : '#dc2626' }}
+                      >
+                        {item.activo ? 'Activo' : 'Inactivo'}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3">
+                      {isEd ? (
+                        <div className="flex gap-1">
+                          <button onClick={() => saveEdit(item.id)} disabled={busy}
+                            className="p-1.5 rounded-lg hover:bg-green-50 disabled:opacity-40 transition-colors" title="Guardar">
+                            <Check size={14} style={{ color: '#16a34a' }} />
+                          </button>
+                          <button onClick={() => setEditing(null)}
+                            className="p-1.5 rounded-lg hover:bg-red-50 transition-colors" title="Cancelar">
+                            <X size={14} style={{ color: '#dc2626' }} />
+                          </button>
+                        </div>
+                      ) : (
+                        <button onClick={() => startEdit(item)}
+                          className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+                          <Pencil size={14} style={{ color: 'var(--muted-foreground)' }} />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+
+              {/* Agregar nuevo */}
+              {adding && (
+                <tr style={{ background: '#fafafa' }}>
+                  <td className="px-4 py-3">
+                    <input
+                      value={newNombre} onChange={e => setNewNombre(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleAdd()}
+                      placeholder="ej: PSE, Efecty..."
+                      className="border rounded-md px-2 py-1 text-sm outline-none w-36"
+                      style={{ borderColor: 'var(--primary)' }}
+                      autoFocus
+                    />
+                  </td>
+                  <td className="px-4 py-3">
+                    {tipoSelect(newTipo, setNewTipo, 'w-28')}
+                  </td>
+                  <td className="px-4 py-3 hidden sm:table-cell">
+                    <input type="number" value={newOrden}
+                      onChange={e => setNewOrden(Number(e.target.value))}
+                      className="w-16 border rounded-md px-2 py-1 text-sm text-center outline-none"
+                      style={{ borderColor: 'var(--border)' }}
+                    />
+                  </td>
+                  <td />
+                  <td className="px-4 py-3">
+                    <div className="flex gap-1">
+                      <button onClick={handleAdd} disabled={busy || !newNombre.trim()}
+                        className="p-1.5 rounded-lg hover:bg-green-50 disabled:opacity-40 transition-colors" title="Agregar">
+                        <Check size={14} style={{ color: '#16a34a' }} />
+                      </button>
+                      <button onClick={() => { setAdding(false); setNewNombre('') }}
+                        className="p-1.5 rounded-lg hover:bg-red-50 transition-colors" title="Cancelar">
+                        <X size={14} style={{ color: '#dc2626' }} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {!adding && (
+          <div className="px-4 py-3 border-t" style={{ borderColor: 'var(--border)' }}>
+            <button
+              onClick={() => { setAdding(true); setNewOrden(items.length + 1) }}
+              className="flex items-center gap-2 text-sm font-medium transition-colors hover:opacity-80"
+              style={{ color: 'var(--primary)' }}>
+              <Plus size={15} /> Agregar método de pago
+            </button>
+          </div>
+        )}
+      </div>
+
+      {error && (
+        <p className="mt-3 text-sm px-3 py-2 rounded-lg" style={{ background: '#fef2f2', color: '#dc2626' }}>{error}</p>
+      )}
+    </div>
+  )
+}
 
 // ─── Generic lookup panel (Presentaciones & Tipos) ───────────
 function LookupPanel({
@@ -358,10 +602,12 @@ function NegocioPanel({ initialConfig }: { initialConfig: Configuracion | null }
 export function ConfiguracionClient({
   initialPresentations,
   initialTipos,
+  initialMetodosPago,
   config,
 }: {
   initialPresentations: Presentation[]
   initialTipos: TipoProducto[]
+  initialMetodosPago: MetodoPago[]
   config: Configuracion | null
 }) {
   const [tab, setTab] = useState<Tab>('presentaciones')
@@ -414,6 +660,9 @@ export function ConfiguracionClient({
           activeKey="activo"
           description={TABS[1].desc}
         />
+      )}
+      {tab === 'metodos_pago' && (
+        <MetodosPagoPanel initialItems={initialMetodosPago} />
       )}
       {tab === 'negocio' && (
         <NegocioPanel initialConfig={config} />

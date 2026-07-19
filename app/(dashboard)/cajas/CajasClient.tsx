@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Caja, MovimientoCaja, CajaTipo } from '@/lib/types'
+import { Caja, MovimientoCaja, CajaTipo, MetodoPago } from '@/lib/types'
 import { formatCOP, formatDateTime } from '@/lib/utils'
 import { Wallet, Banknote, Plus, Pencil, TrendingUp, TrendingDown, X } from 'lucide-react'
 
@@ -17,9 +17,11 @@ const TIPO_LABELS: Record<CajaTipo, string> = { efectivo: 'Efectivo', bancaria: 
 export function CajasClient({
   cajas: initialCajas,
   movimientos: initialMovimientos,
+  metodosPago,
 }: {
   cajas: CajaWithBalance[]
   movimientos: MovimientoWithCaja[]
+  metodosPago: MetodoPago[]
 }) {
   const [cajas, setCajas] = useState(initialCajas)
   const [movimientos] = useState(initialMovimientos)
@@ -27,20 +29,20 @@ export function CajasClient({
   const [filterTipo, setFilterTipo] = useState<'todos' | 'ingreso' | 'egreso'>('todos')
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<CajaWithBalance | null>(null)
-  const [form, setForm] = useState({ nombre: '', tipo: 'efectivo' as CajaTipo, saldo_inicial: '0' })
+  const [form, setForm] = useState({ nombre: '', tipo: 'efectivo' as CajaTipo, saldo_inicial: '0', metodo_pago_id: '' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
   function openCreate() {
     setEditing(null)
-    setForm({ nombre: '', tipo: 'efectivo', saldo_inicial: '0' })
+    setForm({ nombre: '', tipo: 'efectivo', saldo_inicial: '0', metodo_pago_id: '' })
     setError('')
     setShowModal(true)
   }
 
   function openEdit(caja: CajaWithBalance) {
     setEditing(caja)
-    setForm({ nombre: caja.nombre, tipo: caja.tipo, saldo_inicial: String(caja.saldo_inicial) })
+    setForm({ nombre: caja.nombre, tipo: caja.tipo, saldo_inicial: String(caja.saldo_inicial), metodo_pago_id: caja.metodo_pago_id ?? '' })
     setError('')
     setShowModal(true)
   }
@@ -53,26 +55,30 @@ export function CajasClient({
     setError('')
     const supabase = createClient()
 
+    const metodoPagoId = form.metodo_pago_id || null
+
     if (editing) {
       const { data, error: err } = await supabase
         .from('cajas')
-        .update({ nombre: form.nombre.trim(), saldo_inicial: saldo, updated_at: new Date().toISOString() })
+        .update({ nombre: form.nombre.trim(), saldo_inicial: saldo, metodo_pago_id: metodoPagoId, updated_at: new Date().toISOString() })
         .eq('id', editing.id)
         .select()
         .single()
       if (err) { setError(err.message); setSaving(false); return }
+      const metodo = metodosPago.find(m => m.id === metodoPagoId) ?? null
       setCajas(prev => prev.map(c => c.id === editing.id
-        ? { ...data, saldo_actual: saldo + (editing.saldo_actual - editing.saldo_inicial) }
+        ? { ...data, metodo_pago: metodo ?? undefined, saldo_actual: saldo + (editing.saldo_actual - editing.saldo_inicial) }
         : c
       ))
     } else {
       const { data, error: err } = await supabase
         .from('cajas')
-        .insert({ nombre: form.nombre.trim(), tipo: form.tipo, saldo_inicial: saldo })
+        .insert({ nombre: form.nombre.trim(), tipo: form.tipo, saldo_inicial: saldo, metodo_pago_id: metodoPagoId })
         .select()
         .single()
       if (err) { setError(err.message); setSaving(false); return }
-      setCajas(prev => [...prev, { ...data, saldo_actual: saldo }])
+      const metodo = metodosPago.find(m => m.id === metodoPagoId) ?? null
+      setCajas(prev => [...prev, { ...data, metodo_pago: metodo ?? undefined, saldo_actual: saldo }])
     }
 
     setSaving(false)
@@ -124,13 +130,21 @@ export function CajasClient({
                 </div>
                 <div>
                   <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>{caja.nombre}</p>
-                  <span className="text-xs px-1.5 py-0.5 rounded-full font-medium"
-                    style={{
-                      background: caja.tipo === 'efectivo' ? '#d1fae5' : '#dbeafe',
-                      color: caja.tipo === 'efectivo' ? '#065f46' : '#1e40af',
-                    }}>
-                    {TIPO_LABELS[caja.tipo]}
-                  </span>
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <span className="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                      style={{
+                        background: caja.tipo === 'efectivo' ? '#d1fae5' : '#dbeafe',
+                        color: caja.tipo === 'efectivo' ? '#065f46' : '#1e40af',
+                      }}>
+                      {TIPO_LABELS[caja.tipo]}
+                    </span>
+                    {(caja as any).metodo_pago?.nombre && (
+                      <span className="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                        style={{ background: 'var(--secondary)', color: 'var(--primary)' }}>
+                        {(caja as any).metodo_pago.nombre}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               <button onClick={() => openEdit(caja)} className="p-1.5 rounded-lg hover:bg-gray-100">
@@ -289,6 +303,21 @@ export function CajasClient({
                   </select>
                 </Field>
               )}
+
+              <Field label="Método de pago asociado">
+                <select
+                  value={form.metodo_pago_id}
+                  onChange={e => setForm(f => ({ ...f, metodo_pago_id: e.target.value }))}
+                  className="input-field">
+                  <option value="">— Sin método específico —</option>
+                  {metodosPago.map(m => (
+                    <option key={m.id} value={m.id}>{m.nombre}</option>
+                  ))}
+                </select>
+                <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>
+                  Al completar una venta con este método, el ingreso se registrará en esta caja.
+                </p>
+              </Field>
 
               <Field label="Saldo inicial">
                 <input type="number" min="0" step="100" value={form.saldo_inicial}

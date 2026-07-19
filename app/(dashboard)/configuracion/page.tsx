@@ -9,10 +9,12 @@ export default async function ConfiguracionPage() {
   const [
     { data: presentations },
     { data: tiposProducto },
+    { data: metodosPago },
     { data: config },
   ] = await Promise.all([
     supabase.from('presentations').select('*').order('orden'),
     supabase.from('tipos_producto').select('*').order('orden'),
+    supabase.from('metodos_pago').select('*').order('orden'),
     supabase.from('configuracion').select('*').maybeSingle(),
   ])
 
@@ -20,6 +22,7 @@ export default async function ConfiguracionPage() {
     <ConfiguracionClient
       initialPresentations={presentations ?? []}
       initialTipos={tiposProducto ?? []}
+      initialMetodosPago={metodosPago ?? []}
       config={config}
     />
   )
