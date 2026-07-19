@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Caja, MovimientoCaja, CajaTipo, MetodoPago } from '@/lib/types'
 import { formatCOP, formatDateTime } from '@/lib/utils'
 import { Wallet, Banknote, Plus, Pencil, TrendingUp, TrendingDown, X } from 'lucide-react'
+import { useEscKey } from '@/lib/hooks/useEscKey'
 
 type CajaWithBalance = Caja & { saldo_actual: number }
 type MovimientoWithCaja = MovimientoCaja & {
@@ -32,6 +33,8 @@ export function CajasClient({
   const [form, setForm] = useState({ nombre: '', tipo: 'efectivo' as CajaTipo, saldo_inicial: '0', metodo_pago_id: '' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  useEscKey(() => setShowModal(false))
 
   function openCreate() {
     setEditing(null)

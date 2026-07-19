@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Product, InventoryMovement } from '@/lib/types'
 import { formatDateTime } from '@/lib/utils'
 import { Plus, Warehouse, ArrowDownCircle, ArrowUpCircle, RefreshCcw } from 'lucide-react'
+import { useEscKey } from '@/lib/hooks/useEscKey'
 
 const MOVEMENT_TYPES = [
   { value: 'entrada', label: 'Entrada', icon: ArrowDownCircle, color: '#16a34a' },
@@ -25,6 +26,8 @@ export function InventoryClient({
   const [form, setForm] = useState({ product_id: '', type: 'entrada', quantity: '', reason: '' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  useEscKey(() => setShowModal(false))
 
   const selectedProduct = products.find(p => p.id === form.product_id)
 

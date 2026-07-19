@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Caja, Compra, TipoGasto } from '@/lib/types'
 import { formatCOP, formatDate } from '@/lib/utils'
 import { Plus, ShoppingBag, Pencil, Trash2, X, Banknote, Wallet, Tag, Receipt } from 'lucide-react'
+import { useEscKey } from '@/lib/hooks/useEscKey'
 
 type CompraFull = Compra & {
   caja?: Pick<Caja, 'nombre' | 'tipo'>
@@ -41,6 +42,8 @@ export function ComprasClient({
   const [error, setError] = useState('')
   const [deleting, setDeleting] = useState<string | null>(null)
   const [filterTipo, setFilterTipo] = useState<'todos' | TipoGasto>('todos')
+
+  useEscKey(() => setShowModal(false))
 
   function openCreate() {
     setEditing(null)

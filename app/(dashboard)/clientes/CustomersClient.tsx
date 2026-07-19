@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Customer, DocumentType } from '@/lib/types'
 import { Plus, Pencil, Users, Search } from 'lucide-react'
+import { useEscKey } from '@/lib/hooks/useEscKey'
 
 const DOC_TYPES: DocumentType[] = ['CC', 'NIT', 'CE', 'PPN', 'otro']
 
@@ -21,6 +22,8 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  useEscKey(() => setShowModal(false))
 
   const filtered = customers.filter(c =>
     c.full_name.toLowerCase().includes(search.toLowerCase()) ||

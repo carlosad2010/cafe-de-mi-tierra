@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Product, Presentation, TipoProducto } from '@/lib/types'
 import { formatCOP, calcMargin, calcProfit } from '@/lib/utils'
 import { Plus, Pencil, Package, TrendingUp } from 'lucide-react'
+import { useEscKey } from '@/lib/hooks/useEscKey'
 
 type ProductForm = {
   name: string; description: string; presentation_id: string
@@ -28,6 +29,8 @@ export function ProductsClient({ initialProducts, presentations, tiposProducto }
   const [form, setForm] = useState<ProductForm>(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  useEscKey(() => setShowModal(false))
 
   function openCreate() {
     setEditing(null)

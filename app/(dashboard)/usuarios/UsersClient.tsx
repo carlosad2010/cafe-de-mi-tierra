@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Profile } from '@/lib/types'
 import { formatDate } from '@/lib/utils'
 import { Plus, UserCog } from 'lucide-react'
+import { useEscKey } from '@/lib/hooks/useEscKey'
 
 export function UsersClient({ initialProfiles }: { initialProfiles: Profile[] }) {
   const [profiles, setProfiles] = useState(initialProfiles)
@@ -12,6 +13,8 @@ export function UsersClient({ initialProfiles }: { initialProfiles: Profile[] })
   const [form, setForm] = useState({ email: '', full_name: '', password: '', role: 'seller' as 'admin' | 'seller' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  useEscKey(() => setShowModal(false))
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
