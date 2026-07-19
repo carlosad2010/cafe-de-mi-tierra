@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { InvoicesClient } from './InvoicesClient'
 
+export const dynamic = 'force-dynamic'
+
 export default async function InvoicesPage() {
   const supabase = await createClient()
 
