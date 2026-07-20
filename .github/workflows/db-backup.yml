@@ -34,5 +34,65 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-      - name: Notify success
-        run: echo "🗄️ Backup completado — retenido 30 días en GitHub Actions"
+      - name: Send backup via email
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          BACKUP_EMAIL: ${{ secrets.BACKUP_EMAIL }}
+        run: |
+          python3 - <<'EOF'
+          import base64, json, os, urllib.request, urllib.error
+          from datetime import datetime
+
+          backup_file = os.environ['BACKUP_FILE']
+          resend_key  = os.environ['RESEND_API_KEY']
+          dest_email  = os.environ['BACKUP_EMAIL']
+
+          with open(backup_file, 'rb') as f:
+              content = base64.b64encode(f.read()).decode('utf-8')
+
+          size_kb  = os.path.getsize(backup_file) / 1024
+          date_str = datetime.now().strftime('%d/%m/%Y')
+
+          payload = {
+              "from": "Café de mi Tierra <onboarding@resend.dev>",
+              "to": [dest_email],
+              "subject": f"🗄️ Backup BD Café de mi Tierra — {date_str}",
+              "html": f"""
+                  <div style="font-family:sans-serif;max-width:520px;margin:0 auto">
+                    <h2 style="color:#2c1810">☕ Backup diario — Café de mi Tierra</h2>
+                    <p>Se adjunta el backup de la base de datos correspondiente al <strong>{date_str}</strong>.</p>
+                    <table style="width:100%;border-collapse:collapse;font-size:14px;margin:16px 0">
+                      <tr style="background:#fdf8f3">
+                        <td style="padding:8px 12px;border:1px solid #e8ccab">Archivo</td>
+                        <td style="padding:8px 12px;border:1px solid #e8ccab"><code>{backup_file}</code></td>
+                      </tr>
+                      <tr>
+                        <td style="padding:8px 12px;border:1px solid #e8ccab">Tamaño</td>
+                        <td style="padding:8px 12px;border:1px solid #e8ccab">{size_kb:.1f} KB</td>
+                      </tr>
+                    </table>
+                    <p style="font-size:12px;color:#888">
+                      Para restaurar:<br>
+                      <code>gunzip -c {backup_file} | psql [URL_CONEXION]</code>
+                    </p>
+                  </div>
+              """,
+              "attachments": [{"filename": backup_file, "content": content}]
+          }
+
+          req = urllib.request.Request(
+              'https://api.resend.com/emails',
+              data=json.dumps(payload).encode('utf-8'),
+              headers={
+                  'Authorization': f'Bearer {resend_key}',
+                  'Content-Type': 'application/json'
+              }
+          )
+
+          try:
+              with urllib.request.urlopen(req) as r:
+                  print(f"✅ Email enviado a {dest_email}: {r.read().decode()}")
+          except urllib.error.HTTPError as e:
+              print(f"❌ Error Resend: {e.code} — {e.read().decode()}")
+              exit(1)
+          EOF
