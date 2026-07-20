@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Caja, MovimientoCaja, CajaTipo, MetodoPago } from '@/lib/types'
 import { formatCOP, formatDateTime } from '@/lib/utils'
-import { Wallet, Banknote, Plus, Pencil, TrendingUp, TrendingDown, X } from 'lucide-react'
+import { Wallet, Banknote, Plus, Pencil, TrendingUp, TrendingDown, X, Sigma } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
 
 type CajaWithBalance = Caja & { saldo_actual: number }
@@ -99,6 +99,10 @@ export function CajasClient({
     if (data) setCajas(prev => prev.map(c => c.id === caja.id ? { ...c, activa: data.activa } : c))
   }
 
+  const totalEfectivo = cajas.filter(c => c.tipo === 'efectivo').reduce((s, c) => s + c.saldo_actual, 0)
+  const totalBancaria = cajas.filter(c => c.tipo === 'bancaria').reduce((s, c) => s + c.saldo_actual, 0)
+  const totalGeneral  = totalEfectivo + totalBancaria
+
   const movimientosFiltrados = movimientos
     .filter(m => filterCajaTipo === 'todas' || m.caja?.tipo === filterCajaTipo)
     .filter(m => filterTipo === 'todos' || m.tipo === filterTipo)
@@ -171,6 +175,62 @@ export function CajasClient({
             )}
           </div>
         ))}
+      </div>
+
+      {/* Totalizador general */}
+      <div className="rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-0"
+        style={{ background: 'linear-gradient(135deg, #2c1810 0%, #4a2c1a 100%)', boxShadow: '0 4px 24px rgba(44,24,16,0.25)' }}>
+
+        {/* Ícono + label */}
+        <div className="flex items-center gap-3 sm:flex-1">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: 'rgba(255,255,255,0.12)' }}>
+            <Sigma size={20} style={{ color: '#f5d9b0' }} />
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              Total General
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              {cajas.length} {cajas.length === 1 ? 'caja' : 'cajas'}
+            </p>
+          </div>
+        </div>
+
+        {/* Desglose por tipo */}
+        <div className="flex gap-6 sm:justify-center sm:flex-1">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg flex items-center justify-center"
+              style={{ background: 'rgba(209,250,229,0.15)' }}>
+              <Banknote size={13} style={{ color: '#6ee7b7' }} />
+            </div>
+            <div>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>Efectivo</p>
+              <p className="text-sm font-semibold" style={{ color: '#6ee7b7' }}>{formatCOP(totalEfectivo)}</p>
+            </div>
+          </div>
+          <div style={{ width: '1px', background: 'rgba(255,255,255,0.1)' }} className="hidden sm:block" />
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg flex items-center justify-center"
+              style={{ background: 'rgba(219,234,254,0.15)' }}>
+              <Wallet size={13} style={{ color: '#93c5fd' }} />
+            </div>
+            <div>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>Bancaria</p>
+              <p className="text-sm font-semibold" style={{ color: '#93c5fd' }}>{formatCOP(totalBancaria)}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Total grande */}
+        <div className="text-right sm:flex-1">
+          <p className="text-xs font-medium uppercase tracking-wide mb-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
+            Saldo total
+          </p>
+          <p className="text-3xl font-bold" style={{ color: totalGeneral >= 0 ? '#f5d9b0' : '#fca5a5' }}>
+            {formatCOP(totalGeneral)}
+          </p>
+        </div>
       </div>
 
       {/* Movimientos */}
