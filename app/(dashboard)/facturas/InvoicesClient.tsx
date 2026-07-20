@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Order } from '@/lib/types'
 import { formatCOP, formatDate, formatDateTime, getWhatsAppLink, PAYMENT_METHODS } from '@/lib/utils'
-import { FileText, Send, MessageCircle, Eye, Download, RotateCcw, AlertTriangle, Package, Wallet, CheckCircle } from 'lucide-react'
+import { FileText, Send, MessageCircle, Eye, Download, RotateCcw, AlertTriangle, Package, Wallet, CheckCircle, ChevronDown, X } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
 
 export function InvoicesClient({ orders: initialOrders }: { orders: Order[] }) {
@@ -14,6 +14,8 @@ export function InvoicesClient({ orders: initialOrders }: { orders: Order[] }) {
   const [confirmOrder, setConfirmOrder] = useState<Order | null>(null)
   const [reversando, setReversando]     = useState(false)
   const [successMsg, setSuccessMsg]     = useState('')
+  const [filterCliente, setFilterCliente] = useState('')
+  const [filterMetodo, setFilterMetodo]   = useState('')
 
   useEscKey(() => {
     if (confirmOrder && !reversando) { setConfirmOrder(null); return }
@@ -119,14 +121,43 @@ export function InvoicesClient({ orders: initialOrders }: { orders: Order[] }) {
     setTimeout(() => setSuccessMsg(''), 5000)
   }
 
+  // ── Filtros ──────────────────────────────────────────────────
+  const uniqueMethods = Array.from(new Set(
+    orders.map(o => PAYMENT_METHODS[o.payment_method] ?? o.payment_method)
+  )).sort()
+
+  const filtered = orders.filter(o => {
+    const name = (o as any).customer?.full_name?.toLowerCase() ?? ''
+    const method = PAYMENT_METHODS[o.payment_method] ?? o.payment_method
+    const matchCliente = !filterCliente || name.includes(filterCliente.toLowerCase())
+    const matchMetodo  = !filterMetodo  || method === filterMetodo
+    return matchCliente && matchMetodo
+  })
+
+  const hasFilter = filterCliente || filterMetodo
+
   // ── Render ───────────────────────────────────────────────────
   return (
     <div className="p-4 sm:p-6">
       <div className="page-header">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>Facturas</h1>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Pedidos completados · {orders.length} facturas</p>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
+            Pedidos completados ·{' '}
+            {hasFilter
+              ? <><span style={{ color: 'var(--primary)', fontWeight: 600 }}>{filtered.length}</span> de {orders.length} facturas</>
+              : <>{orders.length} facturas</>
+            }
+          </p>
         </div>
+        {hasFilter && (
+          <button
+            onClick={() => { setFilterCliente(''); setFilterMetodo('') }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors hover:bg-gray-50"
+            style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}>
+            <X size={12} /> Limpiar filtros
+          </button>
+        )}
       </div>
 
       {/* Success toast */}
@@ -142,18 +173,82 @@ export function InvoicesClient({ orders: initialOrders }: { orders: Order[] }) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr style={{ background: 'var(--secondary)' }}>
-                <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>#</th>
-                <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Cliente</th>
-                <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Fecha</th>
-                <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Total</th>
-                <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Método</th>
-                <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Email</th>
-                <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Acciones</th>
+              <tr style={{ background: 'var(--secondary)', borderBottom: '1px solid var(--border)' }}>
+                {/* # */}
+                <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)', whiteSpace: 'nowrap' }}>#</th>
+
+                {/* Cliente — con búsqueda */}
+                <th className="px-4 py-2 text-left" style={{ minWidth: '180px' }}>
+                  <div className="text-xs font-medium mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Cliente</div>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={filterCliente}
+                      onChange={e => setFilterCliente(e.target.value)}
+                      placeholder="Buscar cliente..."
+                      className="w-full text-xs rounded-md px-2.5 py-1.5 pr-7 outline-none"
+                      style={{
+                        border: `1px solid ${filterCliente ? 'var(--primary)' : 'var(--border)'}`,
+                        background: filterCliente ? '#fdf8f3' : '#fff',
+                        color: 'var(--foreground)',
+                      }}
+                    />
+                    {filterCliente
+                      ? <button onClick={() => setFilterCliente('')} className="absolute right-1.5 top-1/2 -translate-y-1/2">
+                          <X size={11} style={{ color: 'var(--muted-foreground)' }} />
+                        </button>
+                      : <span className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                          <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="6" r="5" stroke="#9ca3af" strokeWidth="1.5"/><path d="M10 10l4 4" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                        </span>
+                    }
+                  </div>
+                </th>
+
+                {/* Fecha */}
+                <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)', whiteSpace: 'nowrap' }}>Fecha</th>
+
+                {/* Total */}
+                <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)', whiteSpace: 'nowrap' }}>Total</th>
+
+                {/* Método — con selector */}
+                <th className="px-4 py-2 text-left hidden sm:table-cell" style={{ minWidth: '150px' }}>
+                  <div className="text-xs font-medium mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Método</div>
+                  <div className="relative">
+                    <select
+                      value={filterMetodo}
+                      onChange={e => setFilterMetodo(e.target.value)}
+                      className="w-full appearance-none text-xs rounded-md px-2.5 py-1.5 pr-7 outline-none"
+                      style={{
+                        border: `1px solid ${filterMetodo ? 'var(--primary)' : 'var(--border)'}`,
+                        background: filterMetodo ? '#fdf8f3' : '#fff',
+                        color: filterMetodo ? 'var(--foreground)' : 'var(--muted-foreground)',
+                        cursor: 'pointer',
+                      }}>
+                      <option value="">Todos los métodos</option>
+                      {uniqueMethods.map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                      <ChevronDown size={11} style={{ color: '#9ca3af' }} />
+                    </span>
+                    {filterMetodo && (
+                      <button
+                        onClick={() => setFilterMetodo('')}
+                        className="absolute right-6 top-1/2 -translate-y-1/2">
+                        <X size={11} style={{ color: 'var(--muted-foreground)' }} />
+                      </button>
+                    )}
+                  </div>
+                </th>
+
+                {/* Email */}
+                <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)', whiteSpace: 'nowrap' }}>Email</th>
+
+                {/* Acciones */}
+                <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)', whiteSpace: 'nowrap' }}>Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
-              {orders.map(order => {
+              {filtered.map(order => {
                 const customer = (order as any).customer
                 return (
                   <tr key={order.id} className="hover:bg-gray-50">
@@ -210,10 +305,18 @@ export function InvoicesClient({ orders: initialOrders }: { orders: Order[] }) {
             </tbody>
           </table>
         </div>
-        {orders.length === 0 && (
+        {filtered.length === 0 && (
           <div className="py-16 text-center">
             <FileText size={40} className="mx-auto mb-3" style={{ color: 'var(--muted-foreground)' }} />
-            <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Sin facturas aún. Completa un pedido primero.</p>
+            <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+              {hasFilter ? 'Sin resultados para los filtros aplicados.' : 'Sin facturas aún. Completa un pedido primero.'}
+            </p>
+            {hasFilter && (
+              <button onClick={() => { setFilterCliente(''); setFilterMetodo('') }}
+                className="mt-2 text-xs underline" style={{ color: 'var(--primary)' }}>
+                Limpiar filtros
+              </button>
+            )}
           </div>
         )}
       </div>
