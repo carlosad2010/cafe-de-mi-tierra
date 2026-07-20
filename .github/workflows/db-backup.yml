@@ -3,7 +3,7 @@ name: Database Backup
 on:
   schedule:
     - cron: '0 6 * * *'   # Diario a las 6 AM UTC (1 AM Colombia)
-  workflow_dispatch:        # También permite disparo manual desde GitHub
+  workflow_dispatch:        # Permite disparo manual desde GitHub
 
 jobs:
   backup:
@@ -11,44 +11,28 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Install PostgreSQL 17 client
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y curl ca-certificates
-          sudo install -d /usr/share/postgresql-common/pgdg
-          sudo curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc --fail \
-            https://www.postgresql.org/media/keys/ACCC4CF8.asc
-          sudo sh -c 'echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] \
-            https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
-            > /etc/apt/sources.list.d/pgdg.list'
-          sudo apt-get update -qq
-          sudo apt-get install -y postgresql-client-17
-
-      - name: Dump database
+      - name: Dump database (PostgreSQL 17 via Docker)
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           TIMESTAMP=$(date +%Y-%m-%d_%H-%M-%S)
-          FILENAME="cafe-de-mi-tierra_${TIMESTAMP}.dump"
-          pg_dump "$DATABASE_URL" \
-            --no-owner \
-            --no-acl \
-            --format=custom \
-            --file="${FILENAME}"
+          FILENAME="cafe-de-mi-tierra_${TIMESTAMP}.sql"
+          docker run --rm \
+            -e DATABASE_URL="$DATABASE_URL" \
+            postgres:17-alpine \
+            pg_dump "$DATABASE_URL" --no-owner --no-acl > "${FILENAME}"
           gzip "${FILENAME}"
           echo "BACKUP_FILE=${FILENAME}.gz" >> $GITHUB_ENV
-          echo "✅ Backup generado: ${FILENAME}.gz"
+          echo "✅ Backup generado:"
           ls -lh "${FILENAME}.gz"
 
       - name: Upload backup as artifact
         uses: actions/upload-artifact@v4
         with:
           name: backup-${{ github.run_number }}-${{ github.run_attempt }}
-          path: "*.dump.gz"
+          path: "*.sql.gz"
           retention-days: 30
           if-no-files-found: error
 
       - name: Notify success
-        run: |
-          echo "🗄️  Backup completado: ${{ env.BACKUP_FILE }}"
-          echo "📦  Artefacto retenido por 30 días en GitHub Actions"
+        run: echo "🗄️ Backup completado — retenido 30 días en GitHub Actions"
