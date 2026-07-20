@@ -1,0 +1,46 @@
+name: Database Backup
+
+on:
+  schedule:
+    - cron: '0 6 * * *'   # Diario a las 6 AM UTC (1 AM Colombia)
+  workflow_dispatch:        # También permite disparo manual desde GitHub
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client
+
+      - name: Dump database
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          TIMESTAMP=$(date +%Y-%m-%d_%H-%M-%S)
+          FILENAME="cafe-de-mi-tierra_${TIMESTAMP}.dump"
+          pg_dump "$DATABASE_URL" \
+            --no-owner \
+            --no-acl \
+            --format=custom \
+            --file="${FILENAME}"
+          gzip "${FILENAME}"
+          echo "BACKUP_FILE=${FILENAME}.gz" >> $GITHUB_ENV
+          echo "✅ Backup generado: ${FILENAME}.gz"
+          ls -lh "${FILENAME}.gz"
+
+      - name: Upload backup as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-${{ github.run_number }}-${{ github.run_attempt }}
+          path: "*.dump.gz"
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Notify success
+        run: |
+          echo "🗄️  Backup completado: ${{ env.BACKUP_FILE }}"
+          echo "📦  Artefacto retenido por 30 días en GitHub Actions"
