@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Caja, MovimientoCaja, CajaTipo, MetodoPago } from '@/lib/types'
 import { formatCOP, formatDateTime } from '@/lib/utils'
-import { Wallet, Banknote, Plus, Pencil, TrendingUp, TrendingDown, X, Sigma } from 'lucide-react'
+import { Wallet, Banknote, Plus, Pencil, TrendingUp, TrendingDown, X, Sigma, ArrowLeftRight } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
 
 type CajaWithBalance = Caja & { saldo_actual: number }
@@ -34,7 +34,13 @@ export function CajasClient({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  useEscKey(() => setShowModal(false))
+  // Traslado de fondos
+  const [showTraslado, setShowTraslado]   = useState(false)
+  const [tForm, setTForm]                 = useState({ origen_id: '', destino_id: '', monto: '', concepto: '' })
+  const [tSaving, setTSaving]             = useState(false)
+  const [tError, setTError]               = useState('')
+
+  useEscKey(() => { if (showTraslado) { setShowTraslado(false); return } setShowModal(false) })
 
   function openCreate() {
     setEditing(null)
@@ -99,6 +105,43 @@ export function CajasClient({
     if (data) setCajas(prev => prev.map(c => c.id === caja.id ? { ...c, activa: data.activa } : c))
   }
 
+  async function handleTraslado() {
+    const monto = Number(tForm.monto)
+    if (!tForm.origen_id)  { setTError('Selecciona la caja origen');   return }
+    if (!tForm.destino_id) { setTError('Selecciona la caja destino');  return }
+    if (tForm.origen_id === tForm.destino_id) { setTError('Las cajas deben ser diferentes'); return }
+    if (!monto || monto <= 0) { setTError('Ingresa un monto válido'); return }
+
+    setTSaving(true); setTError('')
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    const { data, error: rpcErr } = await supabase.rpc('trasladar_fondos', {
+      p_origen_id:  tForm.origen_id,
+      p_destino_id: tForm.destino_id,
+      p_monto:      monto,
+      p_concepto:   tForm.concepto || null,
+      p_user_id:    user?.id ?? null,
+    })
+
+    if (rpcErr || data?.error) {
+      setTError(rpcErr?.message ?? data?.error)
+      setTSaving(false)
+      return
+    }
+
+    // Actualizar saldos localmente
+    setCajas(prev => prev.map(c => {
+      if (c.id === tForm.origen_id)  return { ...c, saldo_actual: c.saldo_actual - monto }
+      if (c.id === tForm.destino_id) return { ...c, saldo_actual: c.saldo_actual + monto }
+      return c
+    }))
+
+    setTSaving(false)
+    setShowTraslado(false)
+    setTForm({ origen_id: '', destino_id: '', monto: '', concepto: '' })
+  }
+
   const totalEfectivo = cajas.filter(c => c.tipo === 'efectivo').reduce((s, c) => s + c.saldo_actual, 0)
   const totalBancaria = cajas.filter(c => c.tipo === 'bancaria').reduce((s, c) => s + c.saldo_actual, 0)
   const totalGeneral  = totalEfectivo + totalBancaria
@@ -115,11 +158,19 @@ export function CajasClient({
           <h1 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>Cajas</h1>
           <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Saldos y movimientos</p>
         </div>
-        <button onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
-          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
-          <Plus size={16} /> Nueva Caja
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => { setTForm({ origen_id: '', destino_id: '', monto: '', concepto: '' }); setTError(''); setShowTraslado(true) }}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border"
+            style={{ borderColor: 'var(--border)', color: 'var(--foreground)', background: '#fff' }}>
+            <ArrowLeftRight size={15} /> Traslado
+          </button>
+          <button onClick={openCreate}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
+            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+            <Plus size={16} /> Nueva Caja
+          </button>
+        </div>
       </div>
 
       {/* Balance cards */}
@@ -339,6 +390,137 @@ export function CajasClient({
           )}
         </div>
       </div>
+
+      {/* ── Modal traslado de fondos ───────────────────────── */}
+      {showTraslado && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'rgba(0,0,0,0.50)', backdropFilter: 'blur(4px)' }}
+          onClick={e => { if (e.target === e.currentTarget) setShowTraslado(false) }}>
+          <div style={{ background: '#fff', borderRadius: '1.25rem', width: '100%', maxWidth: '26rem', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' }}>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ background: '#EFF6FF' }}>
+                  <ArrowLeftRight size={15} style={{ color: '#3B82F6' }} />
+                </div>
+                <h2 className="text-base font-semibold" style={{ color: 'var(--foreground)' }}>Traslado de fondos</h2>
+              </div>
+              <button onClick={() => setShowTraslado(false)} className="p-1.5 rounded-lg hover:bg-gray-100">
+                <X size={16} style={{ color: 'var(--muted-foreground)' }} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+
+              {/* Origen */}
+              <Field label="Caja origen *">
+                <select
+                  value={tForm.origen_id}
+                  onChange={e => setTForm(f => ({ ...f, origen_id: e.target.value }))}
+                  className="input-field">
+                  <option value="">Seleccionar...</option>
+                  {cajas.filter(c => c.activa).map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre} — {formatCOP(c.saldo_actual)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              {/* Flecha visual */}
+              <div className="flex justify-center">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center"
+                  style={{ background: 'var(--secondary)' }}>
+                  <ArrowLeftRight size={14} style={{ color: 'var(--muted-foreground)', transform: 'rotate(90deg)' }} />
+                </div>
+              </div>
+
+              {/* Destino */}
+              <Field label="Caja destino *">
+                <select
+                  value={tForm.destino_id}
+                  onChange={e => setTForm(f => ({ ...f, destino_id: e.target.value }))}
+                  className="input-field">
+                  <option value="">Seleccionar...</option>
+                  {cajas.filter(c => c.activa && c.id !== tForm.origen_id).map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre} — {formatCOP(c.saldo_actual)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              {/* Monto */}
+              <Field label="Monto *">
+                <input
+                  type="number" min="1" step="100"
+                  value={tForm.monto}
+                  onChange={e => setTForm(f => ({ ...f, monto: e.target.value }))}
+                  placeholder="0"
+                  className="input-field" />
+              </Field>
+
+              {/* Preview saldos */}
+              {tForm.origen_id && tForm.destino_id && Number(tForm.monto) > 0 && (() => {
+                const origen  = cajas.find(c => c.id === tForm.origen_id)
+                const destino = cajas.find(c => c.id === tForm.destino_id)
+                const monto   = Number(tForm.monto)
+                if (!origen || !destino) return null
+                return (
+                  <div className="rounded-xl p-3.5 space-y-2 text-xs" style={{ background: 'var(--secondary)' }}>
+                    <p className="font-semibold text-xs uppercase tracking-wide" style={{ color: 'var(--muted-foreground)' }}>
+                      Vista previa
+                    </p>
+                    <div className="flex justify-between">
+                      <span style={{ color: 'var(--foreground)' }}>{origen.nombre}</span>
+                      <span style={{ color: (origen.saldo_actual - monto) < 0 ? '#dc2626' : '#16a34a', fontWeight: 600 }}>
+                        {formatCOP(origen.saldo_actual)} → {formatCOP(origen.saldo_actual - monto)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span style={{ color: 'var(--foreground)' }}>{destino.nombre}</span>
+                      <span style={{ color: '#16a34a', fontWeight: 600 }}>
+                        {formatCOP(destino.saldo_actual)} → {formatCOP(destino.saldo_actual + monto)}
+                      </span>
+                    </div>
+                    {(origen.saldo_actual - monto) < 0 && (
+                      <p style={{ color: '#dc2626' }}>⚠️ La caja origen quedaría en negativo</p>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {/* Concepto opcional */}
+              <Field label="Concepto (opcional)">
+                <input
+                  type="text"
+                  value={tForm.concepto}
+                  onChange={e => setTForm(f => ({ ...f, concepto: e.target.value }))}
+                  placeholder="Ej: Cambio para billetes, arqueo..."
+                  className="input-field" />
+              </Field>
+
+              {tError && (
+                <p className="text-sm p-3 rounded-lg" style={{ background: '#fef2f2', color: '#dc2626' }}>{tError}</p>
+              )}
+
+              <div className="flex gap-3 pt-1">
+                <button onClick={() => setShowTraslado(false)}
+                  className="flex-1 py-2.5 rounded-lg text-sm font-medium border"
+                  style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>
+                  Cancelar
+                </button>
+                <button onClick={handleTraslado} disabled={tSaving}
+                  className="flex-1 py-2.5 rounded-lg text-sm font-medium disabled:opacity-60"
+                  style={{ background: '#3B82F6', color: '#fff' }}>
+                  {tSaving ? 'Trasladando...' : 'Confirmar traslado'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal crear / editar caja */}
       {showModal && (
