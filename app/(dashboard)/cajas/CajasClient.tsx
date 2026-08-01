@@ -4,8 +4,9 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Caja, MovimientoCaja, CajaTipo, MetodoPago } from '@/lib/types'
 import { formatCOP, formatDateTime } from '@/lib/utils'
-import { Wallet, Banknote, Plus, Pencil, TrendingUp, TrendingDown, X, Sigma, ArrowLeftRight } from 'lucide-react'
+import { Wallet, Banknote, Plus, Pencil, TrendingUp, TrendingDown, X, Sigma, ArrowLeftRight, Receipt, ChevronRight } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
+import { MovimientosCajaModal } from './MovimientosCajaModal'
 
 type CajaWithBalance = Caja & { saldo_actual: number }
 type MovimientoWithCaja = MovimientoCaja & {
@@ -40,7 +41,14 @@ export function CajasClient({
   const [tSaving, setTSaving]             = useState(false)
   const [tError, setTError]               = useState('')
 
-  useEscKey(() => { if (showTraslado) { setShowTraslado(false); return } setShowModal(false) })
+  // Detalle de transacciones por caja
+  const [detalleCaja, setDetalleCaja] = useState<CajaWithBalance | null>(null)
+
+  useEscKey(() => {
+    if (detalleCaja) return          // el modal de detalle maneja su propio ESC
+    if (showTraslado) { setShowTraslado(false); return }
+    setShowModal(false)
+  })
 
   function openCreate() {
     setEditing(null)
@@ -224,6 +232,19 @@ export function CajasClient({
                 Activar caja
               </button>
             )}
+
+            {/* Ver transacciones */}
+            <button
+              onClick={() => setDetalleCaja(caja)}
+              className="group mt-4 pt-3 w-full flex items-center justify-between border-t text-xs font-medium transition-colors"
+              style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--primary)' }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted-foreground)' }}>
+              <span className="flex items-center gap-1.5">
+                <Receipt size={13} /> Ver transacciones
+              </span>
+              <ChevronRight size={14} className="transition-transform group-hover:translate-x-0.5" />
+            </button>
           </div>
         ))}
       </div>
@@ -390,6 +411,14 @@ export function CajasClient({
           )}
         </div>
       </div>
+
+      {/* ── Modal detalle de transacciones ─────────────────── */}
+      {detalleCaja && (
+        <MovimientosCajaModal
+          caja={detalleCaja}
+          onClose={() => setDetalleCaja(null)}
+        />
+      )}
 
       {/* ── Modal traslado de fondos ───────────────────────── */}
       {showTraslado && (
