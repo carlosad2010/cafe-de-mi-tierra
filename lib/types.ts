@@ -180,6 +180,49 @@ export type MovimientoCaja = {
   caja?: Pick<Caja, 'nombre' | 'tipo'>
 }
 
+export type EstadoCuenta = 'pendiente' | 'pagada' | 'anulada'
+
+/**
+ * Mercancía entregada a un cliente en consignación. No es un ingreso:
+ * el dinero solo existe cuando la cuenta se factura y pasa a `orders`.
+ */
+export type CuentaCobrar = {
+  id: string
+  numero: number
+  customer_id: string
+  seller_id: string | null
+  estado: EstadoCuenta
+  fecha_entrega: string
+  subtotal: number
+  discount: number
+  total: number
+  notas: string | null
+  order_id: string | null      // factura generada al pagar
+  fecha_pago: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+  customer?: Pick<Customer, 'full_name' | 'phone' | 'email'>
+  seller?: Pick<Profile, 'full_name'>
+  order?: Pick<Order, 'order_number'>
+  items?: CuentaCobrarItem[]
+}
+
+export type CuentaCobrarItem = {
+  id: string
+  cuenta_id: string
+  product_id: string
+  product_name: string
+  product_presentation: string
+  product_type: string
+  cantidad_entregada: number
+  cantidad_devuelta: number
+  unit_price: number
+  cost_price: number
+  subtotal: number             // (entregada - devuelta) * unit_price
+  created_at: string
+}
+
 export type TipoGasto = 'compra' | 'gasto'
 
 export type Compra = {
