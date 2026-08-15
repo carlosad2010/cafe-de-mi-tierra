@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Caja, MovimientoCaja } from '@/lib/types'
 import { formatCOP, formatDateTime } from '@/lib/utils'
 import { useEscKey } from '@/lib/hooks/useEscKey'
 import {
   X, TrendingUp, TrendingDown, Search, Wallet, Banknote,
-  Loader2, Receipt, Flag,
+  Loader2, Receipt, Flag, ChevronLeft, ChevronRight,
 } from 'lucide-react'
 
 type MovimientoDetalle = MovimientoCaja & {
@@ -22,13 +22,50 @@ type CajaWithBalance = Caja & { saldo_actual: number }
 const SELECT_FULL = '*, orden:orders(order_number, customer:customers(full_name)), creator:profiles(full_name)'
 const SELECT_BASE = '*, orden:orders(order_number, customer:customers(full_name))'
 
-function fetchMovimientos(supabase: ReturnType<typeof createClient>, cajaId: string, select: string) {
-  return supabase
-    .from('movimientos_caja')
-    .select(select)
-    .eq('caja_id', cajaId)
-    .order('fecha', { ascending: true })
-    .order('created_at', { ascending: true })
+const PAGE_SIZES = [25, 50, 100] as const
+/** Tamaño de lote del fetch — evita depender del límite de filas de PostgREST */
+const CHUNK = 500
+
+/**
+ * Trae todos los movimientos de la caja en lotes. El orden por `id` al final
+ * hace determinista el corte entre lotes cuando hay fechas repetidas.
+ */
+async function fetchMovimientos(
+  supabase: ReturnType<typeof createClient>,
+  cajaId: string,
+  select: string,
+): Promise<{ data: any[] | null; error: { message: string } | null }> {
+  const all: any[] = []
+
+  for (let from = 0; ; from += CHUNK) {
+    const { data, error } = await supabase
+      .from('movimientos_caja')
+      .select(select)
+      .eq('caja_id', cajaId)
+      .order('fecha', { ascending: true })
+      .order('created_at', { ascending: true })
+      .order('id', { ascending: true })
+      .range(from, from + CHUNK - 1)
+
+    if (error) return { data: null, error }
+    all.push(...((data ?? []) as any[]))
+    if (!data || data.length < CHUNK) break
+  }
+
+  return { data: all, error: null }
+}
+
+/** [1, '…', 4, 5, 6, '…', 20] */
+function pageList(current: number, total: number): (number | '…')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const out: (number | '…')[] = [1]
+  const from = Math.max(2, current - 1)
+  const to = Math.min(total - 1, current + 1)
+  if (from > 2) out.push('…')
+  for (let i = from; i <= to; i++) out.push(i)
+  if (to < total - 1) out.push('…')
+  out.push(total)
+  return out
 }
 
 export function MovimientosCajaModal({
@@ -43,6 +80,8 @@ export function MovimientosCajaModal({
   const [error, setError] = useState('')
   const [filterTipo, setFilterTipo] = useState<'todos' | 'ingreso' | 'egreso'>('todos')
   const [query, setQuery] = useState('')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState<number>(PAGE_SIZES[0])
 
   useEscKey(onClose)
 
@@ -96,6 +135,19 @@ export function MovimientosCajaModal({
         r.orden?.order_number != null ? `#${r.orden.order_number}` : null,
       ].some(v => v != null && String(v).toLowerCase().includes(q))
     })
+
+  // Volver a la página 1 cuando cambia lo que se está listando
+  useEffect(() => { setPage(1) }, [filterTipo, q, pageSize])
+
+  const totalPages  = Math.max(1, Math.ceil(filtered.length / pageSize))
+  const currentPage = Math.min(page, totalPages)   // por si la página quedó fuera de rango
+  const start       = (currentPage - 1) * pageSize
+  const visible     = filtered.slice(start, start + pageSize)
+  const enUltima    = currentPage === totalPages
+
+  // Al cambiar de página, volver arriba de la tabla
+  const scrollRef = useRef<HTMLDivElement>(null)
+  useEffect(() => { scrollRef.current?.scrollTo({ top: 0 }) }, [currentPage])
 
   return (
     <div
@@ -181,15 +233,10 @@ export function MovimientosCajaModal({
               style={{ borderColor: 'var(--border)', background: '#fff', color: 'var(--foreground)' }} />
           </div>
 
-          {!sinFiltros && (
-            <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-              {filtered.length} de {rows.length}
-            </span>
-          )}
         </div>
 
         {/* ── Tabla ──────────────────────────────────────── */}
-        <div className="flex-1 overflow-auto">
+        <div ref={scrollRef} className="flex-1 overflow-auto">
           {loading ? (
             <div className="py-20 flex flex-col items-center gap-3">
               <Loader2 size={24} className="animate-spin" style={{ color: 'var(--muted-foreground)' }} />
@@ -223,7 +270,7 @@ export function MovimientosCajaModal({
                 </tr>
               </thead>
               <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
-                {filtered.map(m => {
+                {visible.map(m => {
                   const cliente = m.orden?.customer?.full_name
                   const factura = m.orden?.order_number != null ? `Factura #${m.orden.order_number}` : null
                   return (
@@ -271,8 +318,8 @@ export function MovimientosCajaModal({
                   )
                 })}
 
-                {/* Ancla cronológica: de dónde arrancó el saldo */}
-                {sinFiltros && (
+                {/* Ancla cronológica: de dónde arrancó el saldo (va al final de todo) */}
+                {sinFiltros && enUltima && (
                   <tr style={{ background: 'var(--background)' }}>
                     <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted-foreground)' }}>
                       {formatDateTime(caja.created_at)}
@@ -300,8 +347,86 @@ export function MovimientosCajaModal({
             </table>
           )}
         </div>
+
+        {/* ── Paginación ─────────────────────────────────── */}
+        {!loading && !error && filtered.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-3 border-t shrink-0"
+            style={{ borderColor: 'var(--border)', background: 'var(--background)' }}>
+
+            <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--muted-foreground)' }}>
+              <span>
+                Mostrando <strong style={{ color: 'var(--foreground)' }}>{start + 1}</strong>
+                –<strong style={{ color: 'var(--foreground)' }}>{start + visible.length}</strong>
+                {' '}de <strong style={{ color: 'var(--foreground)' }}>{filtered.length}</strong>
+                {!sinFiltros && ` (filtrados de ${rows.length})`}
+              </span>
+              <span className="hidden sm:inline">·</span>
+              <label className="hidden sm:flex items-center gap-1.5">
+                Por página
+                <select
+                  value={pageSize}
+                  onChange={e => setPageSize(Number(e.target.value))}
+                  className="rounded-lg border px-2 py-1 text-xs outline-none"
+                  style={{ borderColor: 'var(--border)', background: '#fff', color: 'var(--foreground)' }}>
+                  {PAGE_SIZES.map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </label>
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1">
+                <PageBtn
+                  disabled={currentPage === 1}
+                  onClick={() => setPage(currentPage - 1)}
+                  aria-label="Página anterior">
+                  <ChevronLeft size={14} />
+                </PageBtn>
+
+                {pageList(currentPage, totalPages).map((p, i) =>
+                  p === '…' ? (
+                    <span key={`gap-${i}`} className="px-1 text-xs" style={{ color: 'var(--muted-foreground)' }}>…</span>
+                  ) : (
+                    <PageBtn key={p} active={p === currentPage} onClick={() => setPage(p)}>
+                      {p}
+                    </PageBtn>
+                  )
+                )}
+
+                <PageBtn
+                  disabled={currentPage === totalPages}
+                  onClick={() => setPage(currentPage + 1)}
+                  aria-label="Página siguiente">
+                  <ChevronRight size={14} />
+                </PageBtn>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
+  )
+}
+
+function PageBtn({
+  children, onClick, active, disabled, ...rest
+}: {
+  children: React.ReactNode
+  onClick?: () => void
+  active?: boolean
+  disabled?: boolean
+} & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      {...rest}
+      onClick={onClick}
+      disabled={disabled}
+      className="min-w-[1.75rem] h-7 px-2 rounded-lg text-xs font-medium flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      style={{
+        background: active ? 'var(--primary)' : 'var(--secondary)',
+        color: active ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
+      }}>
+      {children}
+    </button>
   )
 }
 
