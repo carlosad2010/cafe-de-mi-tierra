@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Product, InventoryMovement } from '@/lib/types'
 import { formatDateTime } from '@/lib/utils'
@@ -27,13 +27,23 @@ export function InventoryClient({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
+  // Candado síncrono: dos envíos en el mismo tick registrarían el movimiento dos veces.
+  const savingRef = useRef(false)
+
   useEscKey(() => setShowModal(false))
 
   const selectedProduct = products.find(p => p.id === form.product_id)
 
+  function finishSaving() {
+    savingRef.current = false
+    setSaving(false)
+  }
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
+    if (savingRef.current) return
     if (!selectedProduct) return
+    savingRef.current = true
     setSaving(true)
     setError('')
 
@@ -48,7 +58,7 @@ export function InventoryClient({
 
     if (newStock < 0) {
       setError('El stock no puede quedar negativo')
-      setSaving(false)
+      finishSaving()
       return
     }
 
@@ -64,7 +74,7 @@ export function InventoryClient({
       created_by: user?.id,
     })
 
-    if (err) { setError(err.message); setSaving(false); return }
+    if (err) { setError(err.message); finishSaving(); return }
 
     await supabase.from('products').update({ stock: newStock }).eq('id', form.product_id)
 
@@ -78,7 +88,7 @@ export function InventoryClient({
 
     setMovements(newMovements ?? [])
     setShowModal(false)
-    setSaving(false)
+    finishSaving()
     setForm({ product_id: '', type: 'entrada', quantity: '', reason: '' })
   }
 

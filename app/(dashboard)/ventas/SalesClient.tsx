@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Order, Product, Customer, MetodoPago } from '@/lib/types'
 import { formatCOP, formatDateTime, ORDER_STATUS, PAYMENT_METHODS } from '@/lib/utils'
@@ -115,6 +115,11 @@ export function SalesClient({
 
   // Detail view modal
   const [viewOrder, setViewOrder]   = useState<Order | null>(null)
+
+  // Órdenes con un cambio de estado en vuelo — evita dobles clics.
+  // El ref es el candado real (síncrono); el state solo refleja el estado en la UI.
+  const inFlight = useRef<Set<string>>(new Set())
+  const [busyOrders, setBusyOrders] = useState<string[]>([])
 
   // Shared product-picker state (create)
   const [selProd, setSelProd]   = useState('')
@@ -296,13 +301,34 @@ export function SalesClient({
   // ── Status update ─────────────────────────────────────────────────────────────
 
   async function updateStatus(orderId: string, status: Order['status']) {
-    const supabase = createClient()
-    const { data } = await supabase
-      .from('orders').update({ status }).eq('id', orderId)
-      .select('*, customer:customers(full_name, phone, email), seller:profiles(full_name), items:order_items(*, product:products(name))')
-      .single()
+    // Candado síncrono: dos clics en el mismo tick no pueden pasar los dos.
+    if (inFlight.current.has(orderId)) return
+    inFlight.current.add(orderId)
+    setBusyOrders(prev => [...prev, orderId])
 
-    if (data && status === 'completado') {
+    try {
+      await runStatusUpdate(orderId, status)
+    } finally {
+      inFlight.current.delete(orderId)
+      setBusyOrders(prev => prev.filter(id => id !== orderId))
+    }
+  }
+
+  async function runStatusUpdate(orderId: string, status: Order['status']) {
+    const supabase = createClient()
+    // `.neq('status', status)` hace el cambio idempotente a nivel de base de datos:
+    // si otra pestaña/petición ya lo movió a este estado, el UPDATE afecta 0 filas
+    // y no se registra un segundo movimiento de caja.
+    const { data } = await supabase
+      .from('orders').update({ status })
+      .eq('id', orderId)
+      .neq('status', status)
+      .select('*, customer:customers(full_name, phone, email), seller:profiles(full_name), items:order_items(*, product:products(name))')
+      .maybeSingle()
+
+    if (!data) return  // ya estaba en ese estado — nada que hacer
+
+    if (status === 'completado') {
       const matchedMetodo = metodosPago.find(m => m.nombre === data.payment_method)
       let cajaDest: string | null = null
 
@@ -339,7 +365,7 @@ export function SalesClient({
       }
     }
 
-    if (data) setOrders(prev => prev.map(o => o.id === orderId ? data : o))
+    setOrders(prev => prev.map(o => o.id === orderId ? data : o))
   }
 
   // ── Filtered list ─────────────────────────────────────────────────────────────
@@ -398,6 +424,7 @@ export function SalesClient({
               {filtered.map(order => {
                 const st = ORDER_STATUS[order.status]
                 const isPending = order.status === 'pendiente'
+                const isBusy    = busyOrders.includes(order.id)
                 return (
                   <tr key={order.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 font-mono font-medium" style={{ color: 'var(--primary)' }}>#{order.order_number}</td>
@@ -427,18 +454,21 @@ export function SalesClient({
                               icon={Pencil}
                               label="Editar pedido"
                               variant="primary"
+                              disabled={isBusy}
                               onClick={() => openEdit(order)}
                             />
                             <ActionBtn
                               icon={Check}
-                              label="Completar pedido"
+                              label={isBusy ? 'Procesando…' : 'Completar pedido'}
                               variant="success"
+                              disabled={isBusy}
                               onClick={() => updateStatus(order.id, 'completado')}
                             />
                             <ActionBtn
                               icon={X}
                               label="Cancelar pedido"
                               variant="danger"
+                              disabled={isBusy}
                               onClick={() => updateStatus(order.id, 'cancelado')}
                             />
                           </>

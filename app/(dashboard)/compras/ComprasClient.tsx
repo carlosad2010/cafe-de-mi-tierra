@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Caja, Compra, TipoGasto } from '@/lib/types'
 import { formatCOP, formatDate } from '@/lib/utils'
@@ -43,6 +43,10 @@ export function ComprasClient({
   const [deleting, setDeleting] = useState<string | null>(null)
   const [filterTipo, setFilterTipo] = useState<'todos' | TipoGasto>('todos')
 
+  // Candado síncrono: `saving` no basta, setState es asíncrono y dos clics
+  // en el mismo tick lo atraviesan antes del re-render que deshabilita el botón.
+  const savingRef = useRef(false)
+
   useEscKey(() => setShowModal(false))
 
   function openCreate() {
@@ -67,10 +71,17 @@ export function ComprasClient({
     setShowModal(true)
   }
 
+  function finishSaving() {
+    savingRef.current = false
+    setSaving(false)
+  }
+
   async function handleSave() {
+    if (savingRef.current) return
     if (!form.concepto.trim()) { setError('El concepto es requerido'); return }
     if (!form.monto || Number(form.monto) <= 0) { setError('El monto debe ser mayor a 0'); return }
     if (!form.caja_id) { setError('Selecciona una caja'); return }
+    savingRef.current = true
     setSaving(true)
     setError('')
 
@@ -89,7 +100,7 @@ export function ComprasClient({
         notas: form.notas.trim() || null,
       }
       const { error: err } = await supabase.from('compras').update(updates).eq('id', editing.id)
-      if (err) { setError(err.message); setSaving(false); return }
+      if (err) { setError(err.message); finishSaving(); return }
 
       if (editing.movimiento_id) {
         await supabase.from('movimientos_caja').update({
@@ -119,7 +130,7 @@ export function ComprasClient({
         .select('id')
         .single()
 
-      if (movErr) { setError(movErr.message); setSaving(false); return }
+      if (movErr) { setError(movErr.message); finishSaving(); return }
 
       const { data: compra, error: compraErr } = await supabase
         .from('compras')
@@ -137,11 +148,19 @@ export function ComprasClient({
         .select('*, caja:cajas(nombre, tipo), creator:profiles(full_name)')
         .single()
 
-      if (compraErr) { setError(compraErr.message); setSaving(false); return }
+      if (compraErr) {
+        // El egreso ya está confirmado en la base. Si la compra no se pudo crear,
+        // deshacerlo o quedaría un egreso fantasma descontando el saldo de la caja
+        // sin ninguna compra que lo respalde.
+        await supabase.from('movimientos_caja').delete().eq('id', mov.id)
+        setError(compraErr.message)
+        finishSaving()
+        return
+      }
       setCompras(prev => [compra as CompraFull, ...prev])
     }
 
-    setSaving(false)
+    finishSaving()
     setShowModal(false)
   }
 
@@ -149,8 +168,16 @@ export function ComprasClient({
     if (!confirm(`¿Eliminar "${c.concepto}"? También se eliminará el movimiento de caja.`)) return
     setDeleting(c.id)
     const supabase = createClient()
-    await supabase.from('compras').delete().eq('id', c.id)
-    if (c.movimiento_id) await supabase.from('movimientos_caja').delete().eq('id', c.movimiento_id)
+
+    const { error: compraErr } = await supabase.from('compras').delete().eq('id', c.id)
+    if (compraErr) { alert(`No se pudo eliminar: ${compraErr.message}`); setDeleting(null); return }
+
+    if (c.movimiento_id) {
+      const { error: movErr } = await supabase.from('movimientos_caja').delete().eq('id', c.movimiento_id)
+      // La compra ya se borró; si el egreso sobrevive queda descontando saldo sin respaldo.
+      if (movErr) alert(`Compra eliminada, pero su movimiento de caja sigue activo (${movErr.message}). Elimínalo desde Cajas.`)
+    }
+
     setCompras(prev => prev.filter(x => x.id !== c.id))
     setDeleting(null)
   }
