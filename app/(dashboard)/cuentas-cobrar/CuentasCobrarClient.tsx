@@ -359,8 +359,12 @@ export function CuentasCobrarClient({
                     </option>
                   ))}
                 </select>
-                <input type="number" min="1" value={selQty} onChange={e => setSelQty(e.target.value)}
-                  className="input-field w-20" />
+                {/* `.input-field` trae width:100%, que le gana a `w-20`. El ancho
+                    se fija en el contenedor para no depender del orden del CSS. */}
+                <div className="w-20 shrink-0">
+                  <input type="number" min="1" value={selQty} onChange={e => setSelQty(e.target.value)}
+                    className="input-field" />
+                </div>
                 <button type="button" onClick={addToCart} disabled={!selProd}
                   className="px-3 rounded-lg text-sm font-medium disabled:opacity-40"
                   style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
@@ -423,23 +427,73 @@ export function CuentasCobrarClient({
           <div className="space-y-4">
             <div className="rounded-xl border divide-y" style={{ borderColor: 'var(--border)' }}>
               {(devolCuenta.items ?? []).map(it => {
-                const disp = vigente(it)
+                const disp  = vigente(it)
+                const usado = Math.min(Number(devolQty[it.id]) || 0, disp)
+                const agotado = disp === 0
                 return (
-                  <div key={it.id} className="flex items-center gap-3 p-3 text-sm">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate" style={{ color: 'var(--foreground)' }}>{it.product_name}</p>
-                      <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-                        {disp} vigente(s) de {it.cantidad_entregada} · {formatCOP(it.unit_price)} c/u
+                  <div key={it.id} className="p-3 space-y-2">
+                    {/* Nombre y precio en su propia línea: en pantallas
+                        angostas no hay ancho para ponerlos junto al input. */}
+                    <div className="flex items-baseline justify-between gap-2">
+                      <p className="font-medium text-sm truncate min-w-0" style={{ color: 'var(--foreground)' }}>
+                        {it.product_name}
                       </p>
+                      <span className="text-xs shrink-0" style={{ color: 'var(--muted-foreground)' }}>
+                        {formatCOP(it.unit_price)} c/u
+                      </span>
                     </div>
-                    <input type="number" min="0" max={disp} disabled={disp === 0}
-                      value={devolQty[it.id] ?? ''} placeholder="0"
-                      onChange={e => setDevolQty(p => ({ ...p, [it.id]: e.target.value }))}
-                      className="input-field w-20 disabled:opacity-40" />
+
+                    <div className="flex items-center gap-2">
+                      <div className="w-20 shrink-0">
+                        <input type="number" min="0" max={disp} disabled={agotado}
+                          value={devolQty[it.id] ?? ''} placeholder="0"
+                          onChange={e => setDevolQty(p => ({ ...p, [it.id]: e.target.value }))}
+                          className="input-field disabled:opacity-40" />
+                      </div>
+                      <span className="text-xs shrink-0" style={{ color: 'var(--muted-foreground)' }}>
+                        {agotado ? 'ya devuelto' : `de ${disp} vigente${disp !== 1 ? 's' : ''}`}
+                      </span>
+                      {!agotado && usado < disp && (
+                        <button type="button"
+                          onClick={() => setDevolQty(p => ({ ...p, [it.id]: String(disp) }))}
+                          className="ml-auto text-xs px-2 py-1 rounded-md shrink-0"
+                          style={{ background: 'var(--secondary)', color: 'var(--muted-foreground)' }}>
+                          Todo
+                        </button>
+                      )}
+                      {usado > 0 && (
+                        <span className="ml-auto text-xs font-medium shrink-0" style={{ color: '#c4832a' }}>
+                          −{formatCOP(usado * it.unit_price)}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )
               })}
             </div>
+
+            {/* Impacto de la devolución antes de confirmarla. Replica el
+                cálculo de recalcular_cuenta_cobrar, incluido el recorte del
+                descuento cuando el subtotal queda por debajo. */}
+            {(() => {
+              const items    = devolCuenta.items ?? []
+              const unidades = items.reduce((s, it) => s + Math.min(Number(devolQty[it.id]) || 0, vigente(it)), 0)
+              if (unidades === 0) return null
+              const nuevoSub  = items.reduce((s, it) =>
+                s + (vigente(it) - Math.min(Number(devolQty[it.id]) || 0, vigente(it))) * it.unit_price, 0)
+              const nuevoTot  = nuevoSub - Math.min(devolCuenta.discount, nuevoSub)
+              return (
+                <div className="rounded-xl p-3 flex items-center justify-between gap-3"
+                  style={{ background: 'var(--secondary)' }}>
+                  <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                    Vuelven {unidades} unidad{unidades !== 1 ? 'es' : ''} al inventario
+                  </span>
+                  <span className="text-sm font-semibold whitespace-nowrap" style={{ color: 'var(--foreground)' }}>
+                    {formatCOP(devolCuenta.total)} → <span style={{ color: 'var(--primary)' }}>{formatCOP(nuevoTot)}</span>
+                  </span>
+                </div>
+              )
+            })()}
 
             {error && <ErrorBox msg={error} />}
 
