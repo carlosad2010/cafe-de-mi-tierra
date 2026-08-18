@@ -14,7 +14,7 @@ export default async function CuentasCobrarPage() {
         // `seller:profiles` a secas es ambiguo: esta tabla tiene DOS llaves
         // foráneas hacia profiles (seller_id y created_by), así que hay que
         // nombrar la constraint o PostgREST responde PGRST201 y no trae nada.
-        .select('*, customer:customers(full_name, phone, email), seller:profiles!cuentas_cobrar_seller_id_fkey(full_name), order:orders(order_number), items:cuentas_cobrar_items(*)')
+        .select('*, customer:customers(full_name, phone, email), seller:profiles!cuentas_cobrar_seller_id_fkey(full_name), items:cuentas_cobrar_items(*), facturas:cuentas_cobrar_facturas(*, order:orders(order_number))')
         .order('fecha_entrega', { ascending: false })
         .limit(200),
       supabase

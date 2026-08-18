@@ -18,13 +18,16 @@ type PriceTier = 'precio1' | 'precio2'
 
 const ESTADO_CONFIG: Record<EstadoCuenta, { label: string; color: string; bg: string }> = {
   pendiente: { label: 'Pendiente', color: '#92400e', bg: '#fef3c7' },
-  pagada:    { label: 'Facturada', color: '#065f46', bg: '#d1fae5' },
+  liquidada: { label: 'Liquidada', color: '#065f46', bg: '#d1fae5' },
   anulada:   { label: 'Anulada',   color: '#6b7280', bg: '#f3f4f6' },
 }
 
-/** Unidades que siguen en poder del cliente y por tanto se cobran. */
+/**
+ * Unidades que siguen en poder del cliente sin cobrar: ni devueltas ni
+ * facturadas todavía. Es lo único que puede cobrarse o devolverse.
+ */
 function vigente(i: CuentaCobrarItem) {
-  return i.cantidad_entregada - i.cantidad_devuelta
+  return i.cantidad_entregada - i.cantidad_devuelta - i.cantidad_facturada
 }
 
 function diasDesde(fecha: string) {
@@ -49,7 +52,6 @@ export function CuentasCobrarClient({
   const [customerId, setCustomerId]   = useState('')
   const [tier, setTier]               = useState<PriceTier>('precio1')
   const [cart, setCart]               = useState<CartItem[]>([])
-  const [descuento, setDescuento]     = useState('0')
   const [notas, setNotas]             = useState('')
   const [selProd, setSelProd]         = useState('')
   const [selQty, setSelQty]           = useState('1')
@@ -59,8 +61,14 @@ export function CuentasCobrarClient({
   const [devolCuenta, setDevolCuenta]     = useState<CuentaCobrar | null>(null)
   const [devolQty, setDevolQty]           = useState<Record<string, string>>({})
   const [facturarCuenta, setFacturar]     = useState<CuentaCobrar | null>(null)
+  const [facturarQty, setFacturarQty]     = useState<Record<string, string>>({})
+  const [facturarDesc, setFacturarDesc]   = useState('0')
   const [metodoPago, setMetodoPago]       = useState('')
   const [cajaId, setCajaId]               = useState('')
+  // Se genera al abrir el modal y viaja con el cobro. Si la petición se
+  // repite (doble clic, reintento de red), el servidor reconoce la clave
+  // y devuelve la factura ya creada en vez de cobrar otra vez.
+  const [idemKey, setIdemKey]             = useState('')
 
   const [error, setError]     = useState('')
   const [busy, setBusy]       = useState(false)
@@ -120,18 +128,19 @@ export function CuentasCobrarClient({
     setSelProd(''); setSelQty('1')
   }
 
-  const subtotalCart = cart.reduce((s, i) => s + i.product[tier] * i.quantity, 0)
-  const totalCart    = subtotalCart - (Number(descuento) || 0)
+  // Sin descuento aquí: se pacta al cobrar, porque una cuenta puede
+  // liquidarse en varias facturas y un descuento global no sabría a cuál
+  // de ellas aplicarse.
+  const totalCart = cart.reduce((s, i) => s + i.product[tier] * i.quantity, 0)
 
   function resetCreate() {
-    setCustomerId(''); setCart([]); setDescuento('0'); setNotas('')
+    setCustomerId(''); setCart([]); setNotas('')
     setSelProd(''); setSelQty('1'); setTier('precio1'); setError('')
   }
 
   async function handleCreate() {
     if (!customerId)      { setError('Selecciona el cliente que recibe la mercancía'); return }
     if (cart.length === 0) { setError('Agrega al menos un producto'); return }
-    if (totalCart < 0)     { setError('El descuento no puede superar el subtotal'); return }
 
     const ok = await runRpc('crear_cuenta_cobrar', {
       p_customer_id: customerId,
@@ -140,8 +149,7 @@ export function CuentasCobrarClient({
         quantity:   i.quantity,
         unit_price: i.product[tier],
       })),
-      p_discount: Number(descuento) || 0,
-      p_notas:    notas.trim() || null,
+      p_notas: notas.trim() || null,
     }, 'Cuenta creada. El producto salió del inventario.')
 
     if (ok) { setShowCreate(false); resetCreate() }
@@ -175,6 +183,13 @@ export function CuentasCobrarClient({
 
   function openFacturar(c: CuentaCobrar) {
     setFacturar(c)
+    // Arranca con todo lo vigente seleccionado: cobrar la cuenta completa
+    // sigue siendo el caso más común, y quitar es más fácil que sumar.
+    setFacturarQty(Object.fromEntries(
+      (c.items ?? []).filter(i => vigente(i) > 0).map(i => [i.id, String(vigente(i))])
+    ))
+    setFacturarDesc('0')
+    setIdemKey(crypto.randomUUID())
     setMetodoPago(metodosPago[0]?.nombre ?? '')
     setCajaId(cajas[0]?.id ?? '')
     setError('')
@@ -182,11 +197,20 @@ export function CuentasCobrarClient({
 
   async function handleFacturar() {
     if (!facturarCuenta) return
+    const items = Object.entries(facturarQty)
+      .map(([item_id, v]) => ({ item_id, cantidad: Number(v) || 0 }))
+      .filter(i => i.cantidad > 0)
+
+    if (items.length === 0) { setError('Selecciona qué unidades estás cobrando'); return }
+
     const ok = await runRpc('facturar_cuenta_cobrar', {
-      p_cuenta_id:   facturarCuenta.id,
-      p_metodo_pago: metodoPago,
-      p_caja_id:     cajaId,
-    }, `Cuenta #${facturarCuenta.numero} facturada. Ya aparece en Facturas.`)
+      p_cuenta_id:       facturarCuenta.id,
+      p_items:           items,
+      p_metodo_pago:     metodoPago,
+      p_caja_id:         cajaId,
+      p_idempotency_key: idemKey,
+      p_discount:        Number(facturarDesc) || 0,
+    }, `Cobro registrado. Ya aparece en Facturas.`)
 
     if (ok) setFacturar(null)
   }
@@ -242,7 +266,7 @@ export function CuentasCobrarClient({
 
       {/* ── Filtros ── */}
       <div className="flex gap-2 flex-wrap">
-        {(['pendiente', 'pagada', 'anulada', 'todas'] as const).map(f => (
+        {(['pendiente', 'liquidada', 'anulada', 'todas'] as const).map(f => (
           <button key={f} onClick={() => setFiltro(f)}
             className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
             style={{
@@ -269,9 +293,10 @@ export function CuentasCobrarClient({
             </thead>
             <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
               {visibles.map(c => {
-                const cfg   = ESTADO_CONFIG[c.estado]
-                const dias  = diasDesde(c.fecha_entrega)
+                const cfg     = ESTADO_CONFIG[c.estado]
+                const dias    = diasDesde(c.fecha_entrega)
                 const abierta = c.estado === 'pendiente'
+                const parcial = abierta && c.total_facturado > 0
                 return (
                   <tr key={c.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 font-mono font-medium" style={{ color: 'var(--primary)' }}>#{c.numero}</td>
@@ -287,10 +312,20 @@ export function CuentasCobrarClient({
                     </td>
                     <td className="px-4 py-3 font-semibold" style={{ color: 'var(--primary)' }}>{formatCOP(c.total)}</td>
                     <td className="px-4 py-3">
-                      <span className="text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap"
-                        style={{ background: cfg.bg, color: cfg.color }}>
-                        {cfg.label}{c.estado === 'pagada' && c.order?.order_number ? ` #${c.order.order_number}` : ''}
-                      </span>
+                      {/* Una cuenta pendiente con algo ya cobrado no es lo
+                          mismo que una intacta: se distingue como "Parcial". */}
+                      {parcial ? (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap"
+                          style={{ background: '#dbeafe', color: '#1e40af' }}
+                          title={`Cobrado ${formatCOP(c.total_facturado)} de ${formatCOP(c.total_entregado)}`}>
+                          Parcial
+                        </span>
+                      ) : (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap"
+                          style={{ background: cfg.bg, color: cfg.color }}>
+                          {cfg.label}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1 items-center">
@@ -395,15 +430,14 @@ export function CuentasCobrarClient({
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Descuento">
-                <input type="number" min="0" step="100" value={descuento}
-                  onChange={e => setDescuento(e.target.value)} className="input-field" />
-              </Field>
-              <div className="flex flex-col justify-end pb-1">
-                <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Total a cobrar</p>
-                <p className="text-xl font-bold" style={{ color: 'var(--primary)' }}>{formatCOP(totalCart)}</p>
-              </div>
+            <div className="flex items-center justify-between rounded-xl p-3"
+              style={{ background: 'var(--secondary)' }}>
+              <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                Valor entregado
+              </span>
+              <span className="text-xl font-bold" style={{ color: 'var(--primary)' }}>
+                {formatCOP(totalCart)}
+              </span>
             </div>
 
             <Field label="Notas">
@@ -472,16 +506,15 @@ export function CuentasCobrarClient({
               })}
             </div>
 
-            {/* Impacto de la devolución antes de confirmarla. Replica el
-                cálculo de recalcular_cuenta_cobrar, incluido el recorte del
-                descuento cuando el subtotal queda por debajo. */}
+            {/* Impacto de la devolución antes de confirmarla. El pendiente
+                es la suma de lo vigente, sin descuento: ese se pacta al
+                cobrar, no en la cuenta. */}
             {(() => {
               const items    = devolCuenta.items ?? []
               const unidades = items.reduce((s, it) => s + Math.min(Number(devolQty[it.id]) || 0, vigente(it)), 0)
               if (unidades === 0) return null
-              const nuevoSub  = items.reduce((s, it) =>
+              const nuevoTot = items.reduce((s, it) =>
                 s + (vigente(it) - Math.min(Number(devolQty[it.id]) || 0, vigente(it))) * it.unit_price, 0)
-              const nuevoTot  = nuevoSub - Math.min(devolCuenta.discount, nuevoSub)
               return (
                 <div className="rounded-xl p-3 flex items-center justify-between gap-3"
                   style={{ background: 'var(--secondary)' }}>
@@ -506,17 +539,52 @@ export function CuentasCobrarClient({
       {/* ══ Modal: facturar ═══════════════════════════════════ */}
       {facturarCuenta && (
         <Modal onClose={() => !busy && setFacturar(null)}
-          title={`Facturar cuenta #${facturarCuenta.numero}`}
-          subtitle="Se generará una factura y el dinero entrará a la caja que elijas.">
+          title={`Cobrar cuenta #${facturarCuenta.numero}`}
+          subtitle="Indica cuántas unidades vendió el cliente. Lo que no cobres sigue abierto en la cuenta.">
           <div className="space-y-4">
-            <div className="rounded-xl p-4" style={{ background: 'var(--secondary)' }}>
-              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-                {facturarCuenta.customer?.full_name ?? 'Sin cliente'} · entregado {formatDate(facturarCuenta.fecha_entrega)}
-              </p>
-              <p className="text-2xl font-bold mt-1" style={{ color: 'var(--primary)' }}>
-                {formatCOP(facturarCuenta.total)}
-              </p>
+            <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+              {facturarCuenta.customer?.full_name ?? 'Sin cliente'} · entregado {formatDate(facturarCuenta.fecha_entrega)}
+            </p>
+
+            <div className="rounded-xl border divide-y" style={{ borderColor: 'var(--border)' }}>
+              {(facturarCuenta.items ?? []).filter(it => vigente(it) > 0).map(it => {
+                const disp  = vigente(it)
+                const usado = Math.min(Number(facturarQty[it.id]) || 0, disp)
+                return (
+                  <div key={it.id} className="p-3 space-y-2">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <p className="font-medium text-sm truncate min-w-0" style={{ color: 'var(--foreground)' }}>
+                        {it.product_name}
+                      </p>
+                      <span className="text-xs shrink-0" style={{ color: 'var(--muted-foreground)' }}>
+                        {formatCOP(it.unit_price)} c/u
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-20 shrink-0">
+                        <input type="number" min="0" max={disp}
+                          value={facturarQty[it.id] ?? ''} placeholder="0"
+                          onChange={e => setFacturarQty(p => ({ ...p, [it.id]: e.target.value }))}
+                          className="input-field" />
+                      </div>
+                      <span className="text-xs shrink-0" style={{ color: 'var(--muted-foreground)' }}>
+                        de {disp} vigente{disp !== 1 ? 's' : ''}
+                      </span>
+                      {usado > 0 && (
+                        <span className="ml-auto text-xs font-medium shrink-0" style={{ color: 'var(--primary)' }}>
+                          {formatCOP(usado * it.unit_price)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
+
+            <Field label="Descuento de este cobro">
+              <input type="number" min="0" step="100" value={facturarDesc}
+                onChange={e => setFacturarDesc(e.target.value)} className="input-field" />
+            </Field>
 
             <Field label="Método de pago usado">
               <select value={metodoPago} onChange={e => setMetodoPago(e.target.value)} className="input-field">
@@ -530,6 +598,33 @@ export function CuentasCobrarClient({
               </select>
             </Field>
 
+            {(() => {
+              const items = (facturarCuenta.items ?? []).filter(it => vigente(it) > 0)
+              const sub   = items.reduce((s, it) =>
+                s + Math.min(Number(facturarQty[it.id]) || 0, vigente(it)) * it.unit_price, 0)
+              const desc  = Math.min(Math.max(Number(facturarDesc) || 0, 0), sub)
+              const total = sub - desc
+              const resta = facturarCuenta.total - sub
+              return (
+                <div className="rounded-xl p-4 space-y-1" style={{ background: 'var(--secondary)' }}>
+                  {desc > 0 && (
+                    <div className="flex justify-between text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                      <span>Subtotal · descuento</span>
+                      <span>{formatCOP(sub)} · −{formatCOP(desc)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-sm" style={{ color: 'var(--foreground)' }}>Se cobra ahora</span>
+                    <span className="text-2xl font-bold" style={{ color: 'var(--primary)' }}>{formatCOP(total)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs pt-1" style={{ color: 'var(--muted-foreground)' }}>
+                    <span>{resta > 0 ? 'Queda abierto en la cuenta' : 'La cuenta queda liquidada'}</span>
+                    <span>{resta > 0 ? formatCOP(resta) : '—'}</span>
+                  </div>
+                </div>
+              )
+            })()}
+
             <p className="text-xs flex items-start gap-1.5" style={{ color: 'var(--muted-foreground)' }}>
               <AlertTriangle size={14} className="shrink-0 mt-0.5" style={{ color: '#c4832a' }} />
               El inventario no se mueve: el producto ya salió cuando se entregó.
@@ -538,7 +633,7 @@ export function CuentasCobrarClient({
             {error && <ErrorBox msg={error} />}
 
             <ModalActions onCancel={() => setFacturar(null)} busy={busy}
-              confirmLabel="Confirmar pago y facturar" onConfirm={handleFacturar} />
+              confirmLabel="Confirmar cobro" onConfirm={handleFacturar} />
           </div>
         </Modal>
       )}
@@ -553,8 +648,8 @@ export function CuentasCobrarClient({
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ background: 'var(--secondary)' }}>
-                    {['Producto', 'Entregado', 'Devuelto', 'Cobrado'].map(h => (
-                      <th key={h} className="px-3 py-2 text-left font-medium text-xs"
+                    {['Producto', 'Entreg.', 'Devuel.', 'Cobrado', 'Vigente'].map(h => (
+                      <th key={h} className="px-3 py-2 text-left font-medium text-xs whitespace-nowrap"
                         style={{ color: 'var(--muted-foreground)' }}>{h}</th>
                     ))}
                   </tr>
@@ -567,6 +662,9 @@ export function CuentasCobrarClient({
                       <td className="px-3 py-2" style={{ color: it.cantidad_devuelta > 0 ? '#c4832a' : 'var(--muted-foreground)' }}>
                         {it.cantidad_devuelta}
                       </td>
+                      <td className="px-3 py-2" style={{ color: it.cantidad_facturada > 0 ? '#065f46' : 'var(--muted-foreground)' }}>
+                        {it.cantidad_facturada}
+                      </td>
                       <td className="px-3 py-2 font-medium" style={{ color: 'var(--primary)' }}>
                         {vigente(it)} · {formatCOP(it.subtotal)}
                       </td>
@@ -576,19 +674,45 @@ export function CuentasCobrarClient({
               </table>
             </div>
 
-            <div className="flex justify-between items-center px-1">
-              <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-                {verCuenta.discount > 0 ? `Descuento ${formatCOP(verCuenta.discount)}` : 'Sin descuento'}
-              </span>
-              <span className="text-xl font-bold" style={{ color: 'var(--primary)' }}>
-                {formatCOP(verCuenta.total)}
-              </span>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              {[
+                ['Entregado', verCuenta.total_entregado, 'var(--muted-foreground)'],
+                ['Cobrado',   verCuenta.total_facturado, '#065f46'],
+                ['Pendiente', verCuenta.total,           'var(--primary)'],
+              ].map(([label, val, color]) => (
+                <div key={label as string} className="rounded-xl p-2.5" style={{ background: 'var(--secondary)' }}>
+                  <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{label as string}</p>
+                  <p className="text-sm font-bold" style={{ color: color as string }}>{formatCOP(val as number)}</p>
+                </div>
+              ))}
             </div>
 
-            {verCuenta.estado === 'pagada' && verCuenta.fecha_pago && (
+            {(verCuenta.facturas ?? []).length > 0 && (
+              <div>
+                <p className="text-xs font-medium mb-1.5" style={{ color: 'var(--muted-foreground)' }}>
+                  Facturas generadas
+                </p>
+                <div className="rounded-xl border divide-y" style={{ borderColor: 'var(--border)' }}>
+                  {(verCuenta.facturas ?? []).map(f => (
+                    <div key={f.id} className="flex justify-between items-center px-3 py-2 text-sm">
+                      <span style={{ color: 'var(--foreground)' }}>
+                        Factura #{f.order?.order_number ?? '—'}
+                      </span>
+                      <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                        {formatDateTime(f.created_at)}
+                      </span>
+                      <span className="font-semibold" style={{ color: 'var(--primary)' }}>
+                        {formatCOP(f.monto)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {verCuenta.estado === 'liquidada' && verCuenta.fecha_pago && (
               <p className="text-sm p-3 rounded-lg" style={{ background: '#d1fae5', color: '#065f46' }}>
-                Facturada el {formatDateTime(verCuenta.fecha_pago)}
-                {verCuenta.order?.order_number ? ` · factura #${verCuenta.order.order_number}` : ''}
+                Liquidada el {formatDateTime(verCuenta.fecha_pago)}
               </p>
             )}
 
