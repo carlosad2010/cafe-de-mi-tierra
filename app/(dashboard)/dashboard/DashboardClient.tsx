@@ -6,13 +6,14 @@ import { createClient } from '@/lib/supabase/client'
 import { formatCOP, formatDateTime, ORDER_STATUS } from '@/lib/utils'
 import {
   TrendingUp, ShoppingCart, Users, AlertTriangle,
-  DollarSign, Package, ArrowUpRight, ChevronRight,
+  DollarSign, Package, ArrowUpRight, ChevronRight, HandCoins,
 } from 'lucide-react'
 
 type Stats = {
   today_revenue: number; today_orders: number
   month_revenue: number; month_orders: number
   low_stock_count: number; total_customers: number
+  pending_receivable: number; pending_receivable_count: number
 }
 
 // ─── Helpers ──────────────────────────────────────────────────
@@ -60,10 +61,13 @@ export function DashboardClient({
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, async () => {
         const today      = new Date(); today.setHours(0, 0, 0, 0)
         const monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
-        const [{ data: t }, { data: m }, { data: r }] = await Promise.all([
+        // `p` va aquí porque facturar una consignación crea una orden: el
+        // pendiente por cobrar baja en el mismo evento que sube la venta.
+        const [{ data: t }, { data: m }, { data: r }, { data: p }] = await Promise.all([
           supabase.from('orders').select('total').eq('status', 'completado').gte('created_at', today.toISOString()),
           supabase.from('orders').select('total').eq('status', 'completado').gte('created_at', monthStart.toISOString()),
           supabase.from('orders').select('*, customer:customers(full_name), seller:profiles(full_name)').order('created_at', { ascending: false }).limit(8),
+          supabase.from('cuentas_cobrar').select('total').eq('estado', 'pendiente'),
         ])
         setStats(prev => ({
           ...prev,
@@ -71,6 +75,8 @@ export function DashboardClient({
           today_orders:  (t ?? []).length,
           month_revenue: (m ?? []).reduce((s, o) => s + Number(o.total), 0),
           month_orders:  (m ?? []).length,
+          pending_receivable:       (p ?? []).reduce((s, c) => s + Number(c.total), 0),
+          pending_receivable_count: (p ?? []).length,
         }))
         setRecentOrders(r ?? [])
         setRealtimePing(true)
@@ -97,6 +103,16 @@ export function DashboardClient({
       icon: TrendingUp,
       gradient: 'linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)',
       glow: 'rgba(59,130,246,0.28)',
+    },
+    {
+      label: 'Pendiente por cobrar',
+      value: formatCOP(stats.pending_receivable),
+      sub: stats.pending_receivable_count > 0
+        ? `${stats.pending_receivable_count} cuenta${stats.pending_receivable_count !== 1 ? 's' : ''} en consignación`
+        : 'Nada en consignación',
+      icon: HandCoins,
+      gradient: 'linear-gradient(135deg, #4C1D95 0%, #A855F7 100%)',
+      glow: 'rgba(168,85,247,0.28)',
     },
     {
       label: 'Clientes',
@@ -158,7 +174,7 @@ export function DashboardClient({
       </div>
 
       {/* ── KPI Cards ──────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         {cards.map(card => {
           const Icon = card.icon
           return (
