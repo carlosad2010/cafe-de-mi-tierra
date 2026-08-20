@@ -279,7 +279,9 @@ export function InvoicesClient({ orders: initialOrders }: { orders: Order[] }) {
                           className="p-1.5 rounded-lg hover:bg-gray-100">
                           <Download size={14} style={{ color: 'var(--muted-foreground)' }} />
                         </button>
-                        {customer?.email && (
+                        {/* Enviar dispara un correo real al cliente, así que
+                            va del lado de escritura. Ver e imprimir no. */}
+                        {customer?.email && canWrite && (
                           <button onClick={() => sendEmail(order)} title="Enviar por correo"
                             disabled={sending === order.id}
                             className="p-1.5 rounded-lg hover:bg-blue-50 disabled:opacity-40">
