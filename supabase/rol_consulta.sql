@@ -198,9 +198,17 @@ begin
     -- adivinar el orden ni los tipos de los argumentos.
     execute format('alter function %s rename to %I', v_oid::regprocedure, fn || '_impl');
 
+    -- `security definer` es obligatorio: abajo se le revoca a
+    -- `authenticated` el permiso sobre el _impl, así que un envoltorio
+    -- que corriera como el usuario que llama no podría invocarlo y
+    -- dejaría a TODOS sin RPC, no solo a los de consulta.
+    -- `auth.uid()` sale del JWT, no del rol efectivo, así que la guarda
+    -- sigue identificando al usuario real.
     execute format($f$
       create function public.%I(%s) returns %s
       language plpgsql
+      security definer
+      set search_path = public
       as $body$
       begin
         if not public.puede_escribir() then
