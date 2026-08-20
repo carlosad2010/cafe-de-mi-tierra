@@ -22,20 +22,31 @@ import {
   X,
 } from 'lucide-react'
 
+// `consulta` ve todos los módulos operativos en modo lectura. Usuarios y
+// Configuración quedan fuera: además de ser administración pura, sus
+// páginas redirigen a los no-admin en el servidor.
+const TODOS = ['admin', 'seller', 'consulta']
+
 const navItems = [
-  { href: '/dashboard',      label: 'Dashboard',       icon: LayoutDashboard, roles: ['admin', 'seller'] },
-  { href: '/ventas',         label: 'Ventas',           icon: ShoppingCart,    roles: ['admin', 'seller'] },
-  { href: '/clientes',       label: 'Clientes',         icon: Users,           roles: ['admin', 'seller'] },
-  { href: '/productos',      label: 'Productos',        icon: Package,         roles: ['admin', 'seller'] },
-  { href: '/inventario',     label: 'Inventario',       icon: Warehouse,       roles: ['admin', 'seller'] },
-  { href: '/facturas',       label: 'Facturas',         icon: FileText,        roles: ['admin', 'seller'] },
-  { href: '/cuentas-cobrar', label: 'Cuentas x Cobrar', icon: HandCoins,       roles: ['admin', 'seller'] },
-  { href: '/informes',       label: 'Informes',         icon: BarChart2,       roles: ['admin', 'seller'] },
-  { href: '/cajas',          label: 'Cajas',            icon: Wallet,          roles: ['admin', 'seller'] },
-  { href: '/compras',        label: 'Compras y Gastos', icon: ShoppingBag,     roles: ['admin', 'seller'] },
+  { href: '/dashboard',      label: 'Dashboard',       icon: LayoutDashboard, roles: TODOS },
+  { href: '/ventas',         label: 'Ventas',           icon: ShoppingCart,    roles: TODOS },
+  { href: '/clientes',       label: 'Clientes',         icon: Users,           roles: TODOS },
+  { href: '/productos',      label: 'Productos',        icon: Package,         roles: TODOS },
+  { href: '/inventario',     label: 'Inventario',       icon: Warehouse,       roles: TODOS },
+  { href: '/facturas',       label: 'Facturas',         icon: FileText,        roles: TODOS },
+  { href: '/cuentas-cobrar', label: 'Cuentas x Cobrar', icon: HandCoins,       roles: TODOS },
+  { href: '/informes',       label: 'Informes',         icon: BarChart2,       roles: TODOS },
+  { href: '/cajas',          label: 'Cajas',            icon: Wallet,          roles: TODOS },
+  { href: '/compras',        label: 'Compras y Gastos', icon: ShoppingBag,     roles: TODOS },
   { href: '/usuarios',       label: 'Usuarios',         icon: UserCog,         roles: ['admin'] },
   { href: '/configuracion',  label: 'Configuración',    icon: Settings,        roles: ['admin'] },
 ]
+
+const ROLE_LABEL: Record<string, string> = {
+  admin:    'Administrador',
+  seller:   'Vendedor',
+  consulta: 'Solo consulta',
+}
 
 export function Sidebar({ profile, onClose }: { profile: Profile; onClose?: () => void }) {
   const pathname = usePathname()
@@ -103,8 +114,8 @@ export function Sidebar({ profile, onClose }: { profile: Profile; onClose?: () =
           <p className="text-sm font-semibold truncate" style={{ color: 'var(--foreground)' }}>
             {profile.full_name}
           </p>
-          <p className="text-xs capitalize" style={{ color: 'var(--muted-foreground)' }}>
-            {profile.role === 'admin' ? 'Administrador' : 'Vendedor'}
+          <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+            {ROLE_LABEL[profile.role] ?? profile.role}
           </p>
         </div>
         <button

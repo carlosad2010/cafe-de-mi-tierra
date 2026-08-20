@@ -6,6 +6,7 @@ import { Order, Product, Customer, MetodoPago } from '@/lib/types'
 import { formatCOP, formatDateTime, ORDER_STATUS, PAYMENT_METHODS } from '@/lib/utils'
 import { Plus, ShoppingCart, Pencil, Trash2, Check, X, Eye } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
+import { useCanWrite } from '@/lib/perfil-context'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -94,6 +95,7 @@ export function SalesClient({
   metodosPago: MetodoPago[]
 }) {
   const defaultMetodo = metodosPago[0]?.nombre ?? 'Efectivo'
+  const canWrite      = useCanWrite()
 
   // List state
   const [orders, setOrders]       = useState(initialOrders)
@@ -382,12 +384,14 @@ export function SalesClient({
           <h1 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>Ventas</h1>
           <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{orders.length} pedidos registrados</p>
         </div>
-        <button
-          onClick={() => { setCreateForm(emptyForm(defaultMetodo)); setCreateCart([]); setCreateError(''); setShowCreate(true) }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
-          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
-          <Plus size={16} /> Nuevo pedido
-        </button>
+        {canWrite && (
+          <button
+            onClick={() => { setCreateForm(emptyForm(defaultMetodo)); setCreateCart([]); setCreateError(''); setShowCreate(true) }}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
+            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+            <Plus size={16} /> Nuevo pedido
+          </button>
+        )}
       </div>
 
       {/* Filters */}
@@ -448,7 +452,7 @@ export function SalesClient({
                           onClick={() => setViewOrder(order)}
                         />
                         {/* Solo para pendientes */}
-                        {isPending && (
+                        {isPending && canWrite && (
                           <>
                             <ActionBtn
                               icon={Pencil}

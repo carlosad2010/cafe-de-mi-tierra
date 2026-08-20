@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { Menu, Coffee } from 'lucide-react'
 import { Sidebar } from './Sidebar'
 import { Profile } from '@/lib/types'
+import { PerfilProvider } from '@/lib/perfil-context'
 
 export function AppShell({ profile, children }: { profile: Profile; children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
@@ -13,6 +14,7 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
   useEffect(() => { setOpen(false) }, [pathname])
 
   return (
+    <PerfilProvider profile={profile}>
     <div className="flex min-h-screen">
 
       {/* ── Mobile backdrop ── */}
@@ -55,5 +57,6 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
 
       </div>
     </div>
+    </PerfilProvider>
   )
 }

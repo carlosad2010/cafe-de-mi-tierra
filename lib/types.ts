@@ -1,4 +1,5 @@
-export type Role = 'admin' | 'seller'
+/** `consulta` = solo lectura. Se aplica en la base con puede_escribir(). */
+export type Role = 'admin' | 'seller' | 'consulta'
 
 export type Profile = {
   id: string

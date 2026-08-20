@@ -6,6 +6,7 @@ import { Caja, Compra, TipoGasto } from '@/lib/types'
 import { formatCOP, formatDate } from '@/lib/utils'
 import { Plus, ShoppingBag, Pencil, Trash2, X, Banknote, Wallet, Tag, Receipt } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
+import { useCanWrite } from '@/lib/perfil-context'
 
 type CompraFull = Compra & {
   caja?: Pick<Caja, 'nombre' | 'tipo'>
@@ -34,6 +35,7 @@ export function ComprasClient({
   compras: CompraFull[]
   cajas: Pick<Caja, 'id' | 'nombre' | 'tipo'>[]
 }) {
+  const canWrite = useCanWrite()
   const [compras, setCompras] = useState(initialCompras)
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<CompraFull | null>(null)
@@ -197,11 +199,13 @@ export function ComprasClient({
           <h1 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>Compras y Gastos</h1>
           <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{compras.length} registros</p>
         </div>
-        <button onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
-          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
-          <Plus size={16} /> Registrar
-        </button>
+        {canWrite && (
+          <button onClick={openCreate}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
+            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+            <Plus size={16} /> Registrar
+          </button>
+        )}
       </div>
 
       {/* Summary cards */}
@@ -277,13 +281,17 @@ export function ComprasClient({
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
-                      <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg hover:bg-blue-50">
-                        <Pencil size={14} style={{ color: '#2563eb' }} />
-                      </button>
-                      <button onClick={() => handleDelete(c)} disabled={deleting === c.id}
-                        className="p-1.5 rounded-lg hover:bg-red-50 disabled:opacity-40">
-                        <Trash2 size={14} style={{ color: '#dc2626' }} />
-                      </button>
+                      {canWrite && (
+                        <>
+                          <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg hover:bg-blue-50">
+                            <Pencil size={14} style={{ color: '#2563eb' }} />
+                          </button>
+                          <button onClick={() => handleDelete(c)} disabled={deleting === c.id}
+                            className="p-1.5 rounded-lg hover:bg-red-50 disabled:opacity-40">
+                            <Trash2 size={14} style={{ color: '#dc2626' }} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>

@@ -12,6 +12,7 @@ import {
   Package, Clock, AlertTriangle, CheckCircle2, Loader2,
 } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
+import { useCanWrite } from '@/lib/perfil-context'
 
 type CartItem = { product: Product; quantity: number }
 type PriceTier = 'precio1' | 'precio2'
@@ -43,7 +44,8 @@ export function CuentasCobrarClient({
   cajas: Pick<Caja, 'id' | 'nombre' | 'tipo'>[]
   metodosPago: MetodoPago[]
 }) {
-  const router = useRouter()
+  const router   = useRouter()
+  const canWrite = useCanWrite()
 
   const [filtro, setFiltro] = useState<'todas' | EstadoCuenta>('pendiente')
 
@@ -238,11 +240,13 @@ export function CuentasCobrarClient({
             Mercancía entregada en consignación · {pendientes.length} pendiente(s)
           </p>
         </div>
-        <button onClick={() => { resetCreate(); setShowCreate(true) }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium shrink-0"
-          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
-          <Plus size={16} /> Nueva entrega
-        </button>
+        {canWrite && (
+          <button onClick={() => { resetCreate(); setShowCreate(true) }}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium shrink-0"
+            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+            <Plus size={16} /> Nueva entrega
+          </button>
+        )}
       </div>
 
       {okMsg && (
@@ -331,7 +335,7 @@ export function CuentasCobrarClient({
                       <div className="flex gap-1 items-center">
                         <IconBtn icon={Eye} label="Ver detalle" color="#374151"
                           onClick={() => setVerCuenta(c)} />
-                        {abierta && (
+                        {abierta && canWrite && (
                           <>
                             <IconBtn icon={Undo2} label="Registrar devolución" color="#c4832a"
                               disabled={busy} onClick={() => openDevolucion(c)} />

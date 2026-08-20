@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Customer, DocumentType } from '@/lib/types'
 import { Plus, Pencil, Users, Search } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
+import { useCanWrite } from '@/lib/perfil-context'
 
 const DOC_TYPES: DocumentType[] = ['CC', 'NIT', 'CE', 'PPN', 'otro']
 
@@ -15,6 +16,7 @@ const EMPTY_FORM = {
 }
 
 export function CustomersClient({ initialCustomers }: { initialCustomers: Customer[] }) {
+  const canWrite = useCanWrite()
   const [customers, setCustomers] = useState(initialCustomers)
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
@@ -95,11 +97,13 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
           <h1 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>Clientes</h1>
           <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{customers.length} clientes registrados</p>
         </div>
-        <button onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
-          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
-          <Plus size={16} /> Nuevo cliente
-        </button>
+        {canWrite && (
+          <button onClick={openCreate}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
+            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+            <Plus size={16} /> Nuevo cliente
+          </button>
+        )}
       </div>
 
       {/* Search */}
@@ -149,9 +153,11 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-                    <Pencil size={14} style={{ color: 'var(--muted-foreground)' }} />
-                  </button>
+                  {canWrite && (
+                    <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+                      <Pencil size={14} style={{ color: 'var(--muted-foreground)' }} />
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

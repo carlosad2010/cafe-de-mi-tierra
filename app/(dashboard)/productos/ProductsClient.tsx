@@ -6,6 +6,7 @@ import { Product, Presentation, TipoProducto } from '@/lib/types'
 import { formatCOP, calcMargin, calcProfit } from '@/lib/utils'
 import { Plus, Pencil, Package, TrendingUp } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
+import { useCanWrite } from '@/lib/perfil-context'
 
 type ProductForm = {
   name: string; description: string; presentation_id: string
@@ -23,6 +24,7 @@ export function ProductsClient({ initialProducts, presentations, tiposProducto }
   presentations: Presentation[]
   tiposProducto: TipoProducto[]
 }) {
+  const canWrite = useCanWrite()
   const [products, setProducts] = useState(initialProducts)
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Product | null>(null)
@@ -112,9 +114,11 @@ export function ProductsClient({ initialProducts, presentations, tiposProducto }
           <h1 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>Productos</h1>
           <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{products.length} productos registrados</p>
         </div>
-        <button onClick={openCreate} className="btn btn-primary">
-          <Plus size={16} /> Nuevo producto
-        </button>
+        {canWrite && (
+          <button onClick={openCreate} className="btn btn-primary">
+            <Plus size={16} /> Nuevo producto
+          </button>
+        )}
       </div>
 
       {/* Table */}
@@ -168,9 +172,11 @@ export function ProductsClient({ initialProducts, presentations, tiposProducto }
                   </button>
                 </td>
                 <td className="px-4 py-3">
-                  <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-                    <Pencil size={14} style={{ color: 'var(--muted-foreground)' }} />
-                  </button>
+                  {canWrite && (
+                    <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+                      <Pencil size={14} style={{ color: 'var(--muted-foreground)' }} />
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

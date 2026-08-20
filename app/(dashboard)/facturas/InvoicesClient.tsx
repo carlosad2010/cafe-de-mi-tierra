@@ -6,8 +6,10 @@ import { Order } from '@/lib/types'
 import { formatCOP, formatDate, formatDateTime, getWhatsAppLink, PAYMENT_METHODS } from '@/lib/utils'
 import { FileText, Send, MessageCircle, Eye, Download, RotateCcw, AlertTriangle, Package, Wallet, CheckCircle, ChevronDown, X } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
+import { useCanWrite } from '@/lib/perfil-context'
 
 export function InvoicesClient({ orders: initialOrders }: { orders: Order[] }) {
+  const canWrite                        = useCanWrite()
   const [orders, setOrders]             = useState(initialOrders)
   const [sending, setSending]           = useState<string | null>(null)
   const [preview, setPreview]           = useState<Order | null>(null)
@@ -291,12 +293,14 @@ export function InvoicesClient({ orders: initialOrders }: { orders: Order[] }) {
                           </button>
                         )}
                         {/* Reversar */}
-                        <button
-                          onClick={() => setConfirmOrder(order)}
-                          title="Reversar factura"
-                          className="p-1.5 rounded-lg hover:bg-orange-50 transition-colors">
-                          <RotateCcw size={14} style={{ color: '#D97706' }} />
-                        </button>
+                        {canWrite && (
+                          <button
+                            onClick={() => setConfirmOrder(order)}
+                            title="Reversar factura"
+                            className="p-1.5 rounded-lg hover:bg-orange-50 transition-colors">
+                            <RotateCcw size={14} style={{ color: '#D97706' }} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
