@@ -7,6 +7,7 @@ import { formatDateTime } from '@/lib/utils'
 import { Plus, Warehouse, ArrowDownCircle, ArrowUpCircle, RefreshCcw } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { useCanWrite } from '@/lib/perfil-context'
 
 const MOVEMENT_TYPES = [
   { value: 'entrada', label: 'Entrada', icon: ArrowDownCircle, color: '#16a34a' },
@@ -21,6 +22,7 @@ export function InventoryClient({
   initialProducts: Product[]
   initialMovements: InventoryMovement[]
 }) {
+  const canWrite = useCanWrite()
   const [products, setProducts] = useState(initialProducts)
   const [movements, setMovements] = useState(initialMovements)
   const [showModal, setShowModal] = useState(false)
@@ -100,10 +102,12 @@ export function InventoryClient({
           <h1 className="page-title">Inventario</h1>
           <p className="page-subtitle">Control de stock y movimientos</p>
         </div>
-        <button onClick={() => { setForm({ product_id: '', type: 'entrada', quantity: '', reason: '' }); setError(''); setShowModal(true) }}
-          className="btn btn-primary">
-          <Plus size={16} /> Registrar movimiento
-        </button>
+        {canWrite && (
+          <button onClick={() => { setForm({ product_id: '', type: 'entrada', quantity: '', reason: '' }); setError(''); setShowModal(true) }}
+            className="btn btn-primary">
+            <Plus size={16} /> Registrar movimiento
+          </button>
+        )}
       </div>
 
       {/* Stock table */}

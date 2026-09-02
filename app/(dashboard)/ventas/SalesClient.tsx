@@ -10,6 +10,7 @@ import { useEscKey } from '@/lib/hooks/useEscKey'
 import { SearchField } from '@/components/ui/SearchField'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Pagination } from '@/components/ui/Pagination'
+import { useCanWrite } from '@/lib/perfil-context'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -94,6 +95,7 @@ export function SalesClient({
   const defaultMetodo = metodosPago[0]?.nombre ?? 'Efectivo'
   const router   = useRouter()
   const pathname = usePathname()
+  const canWrite = useCanWrite()
   const [navigating, startNavigation] = useTransition()
 
   // List state — el servidor ya entrega la página filtrada; el estado local
@@ -419,11 +421,13 @@ export function SalesClient({
               : `${total} pedidos registrados`}
           </p>
         </div>
-        <button
-          onClick={() => { setCreateForm(emptyForm(defaultMetodo)); setCreateCart([]); setCreateError(''); setShowCreate(true) }}
-          className="btn btn-primary">
-          <Plus size={16} /> Nuevo pedido
-        </button>
+        {canWrite && (
+          <button
+            onClick={() => { setCreateForm(emptyForm(defaultMetodo)); setCreateCart([]); setCreateError(''); setShowCreate(true) }}
+            className="btn btn-primary">
+            <Plus size={16} /> Nuevo pedido
+          </button>
+        )}
       </div>
 
       {/* Búsqueda y filtros */}
@@ -495,7 +499,7 @@ export function SalesClient({
                           onClick={() => setViewOrder(order)}
                         />
                         {/* Solo para pendientes */}
-                        {isPending && (
+                        {isPending && canWrite && (
                           <>
                             <ActionBtn
                               icon={Pencil}

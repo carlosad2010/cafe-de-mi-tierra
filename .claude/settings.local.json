@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(node scripts/check-pagination.mjs)",
+      "Bash(npx tsc *)",
+      "Bash(npx next *)"
+    ]
+  }
+}

@@ -2,16 +2,22 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Profile } from '@/lib/types'
+import { Profile, Role } from '@/lib/types'
 import { formatDate } from '@/lib/utils'
 import { Plus, UserCog } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
 import { EmptyState } from '@/components/ui/EmptyState'
 
+const ROLE_LABEL: Record<string, string> = {
+  admin:    'Administrador',
+  seller:   'Vendedor',
+  consulta: 'Solo consulta',
+}
+
 export function UsersClient({ initialProfiles }: { initialProfiles: Profile[] }) {
   const [profiles, setProfiles] = useState(initialProfiles)
   const [showModal, setShowModal] = useState(false)
-  const [form, setForm] = useState({ email: '', full_name: '', password: '', role: 'seller' as 'admin' | 'seller' })
+  const [form, setForm] = useState({ email: '', full_name: '', password: '', role: 'seller' as Role })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -78,7 +84,7 @@ export function UsersClient({ initialProfiles }: { initialProfiles: Profile[] })
                 <td>
                   <span className="text-xs px-2 py-0.5 rounded-full font-medium capitalize"
                     style={{ background: p.role === 'admin' ? '#fef3c7' : 'var(--secondary)', color: p.role === 'admin' ? '#92400e' : 'var(--muted-foreground)' }}>
-                    {p.role === 'admin' ? 'Administrador' : 'Vendedor'}
+                    {ROLE_LABEL[p.role] ?? p.role}
                   </span>
                 </td>
                 <td>
@@ -129,6 +135,7 @@ export function UsersClient({ initialProfiles }: { initialProfiles: Profile[] })
                 <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value as any }))} className="input-field">
                   <option value="seller">Vendedor</option>
                   <option value="admin">Administrador</option>
+                  <option value="consulta">Solo consulta</option>
                 </select>
               </Field>
 

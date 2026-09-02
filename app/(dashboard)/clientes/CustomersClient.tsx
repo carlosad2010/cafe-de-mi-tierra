@@ -7,6 +7,7 @@ import { Plus, Pencil, Users } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { SearchField } from '@/components/ui/SearchField'
+import { useCanWrite } from '@/lib/perfil-context'
 
 const DOC_TYPES: DocumentType[] = ['CC', 'NIT', 'CE', 'PPN', 'otro']
 
@@ -17,6 +18,7 @@ const EMPTY_FORM = {
 }
 
 export function CustomersClient({ initialCustomers }: { initialCustomers: Customer[] }) {
+  const canWrite = useCanWrite()
   const [customers, setCustomers] = useState(initialCustomers)
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
@@ -97,10 +99,11 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
           <h1 className="page-title">Clientes</h1>
           <p className="page-subtitle">{customers.length} clientes registrados</p>
         </div>
-        <button onClick={openCreate}
-          className="btn btn-primary">
-          <Plus size={16} /> Nuevo cliente
-        </button>
+        {canWrite && (
+          <button onClick={openCreate} className="btn btn-primary">
+            <Plus size={16} /> Nuevo cliente
+          </button>
+        )}
       </div>
 
       {/* Search */}
@@ -147,9 +150,11 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
                   </span>
                 </td>
                 <td>
-                  <button onClick={() => openEdit(c)} className="btn-icon">
-                    <Pencil size={14} style={{ color: 'var(--muted-foreground)' }} />
-                  </button>
+                  {canWrite && (
+                    <button onClick={() => openEdit(c)} className="btn-icon">
+                      <Pencil size={14} style={{ color: 'var(--muted-foreground)' }} />
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

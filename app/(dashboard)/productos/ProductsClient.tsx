@@ -8,6 +8,7 @@ import { Plus, Pencil, Package, TrendingUp } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
 import { SearchField } from '@/components/ui/SearchField'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { useCanWrite } from '@/lib/perfil-context'
 
 type ProductForm = {
   name: string; description: string; presentation_id: string
@@ -25,6 +26,7 @@ export function ProductsClient({ initialProducts, presentations, tiposProducto }
   presentations: Presentation[]
   tiposProducto: TipoProducto[]
 }) {
+  const canWrite = useCanWrite()
   const [products, setProducts] = useState(initialProducts)
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Product | null>(null)
@@ -124,9 +126,11 @@ export function ProductsClient({ initialProducts, presentations, tiposProducto }
               : `${products.length} productos registrados`}
           </p>
         </div>
-        <button onClick={openCreate} className="btn btn-primary">
-          <Plus size={16} /> Nuevo producto
-        </button>
+        {canWrite && (
+          <button onClick={openCreate} className="btn btn-primary">
+            <Plus size={16} /> Nuevo producto
+          </button>
+        )}
       </div>
 
       {/* Search */}
@@ -188,9 +192,11 @@ export function ProductsClient({ initialProducts, presentations, tiposProducto }
                   </button>
                 </td>
                 <td>
-                  <button onClick={() => openEdit(p)} className="btn-icon">
-                    <Pencil size={14} style={{ color: 'var(--muted-foreground)' }} />
-                  </button>
+                  {canWrite && (
+                    <button onClick={() => openEdit(p)} className="btn-icon">
+                      <Pencil size={14} style={{ color: 'var(--muted-foreground)' }} />
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

@@ -1,4 +1,5 @@
-export type Role = 'admin' | 'seller'
+/** `consulta` = solo lectura. Se aplica en la base con puede_escribir(). */
+export type Role = 'admin' | 'seller' | 'consulta'
 
 export type Profile = {
   id: string
@@ -180,11 +181,14 @@ export type MovimientoCaja = {
   caja?: Pick<Caja, 'nombre' | 'tipo'>
 }
 
-export type EstadoCuenta = 'pendiente' | 'pagada' | 'anulada'
+export type EstadoCuenta = 'pendiente' | 'liquidada' | 'anulada'
 
 /**
  * Mercancía entregada a un cliente en consignación. No es un ingreso:
- * el dinero solo existe cuando la cuenta se factura y pasa a `orders`.
+ * el dinero solo existe cuando se factura y pasa a `orders`.
+ *
+ * Se liquida por partes: el cliente vende algo, se factura solo eso, y
+ * el resto sigue abierto. Por eso una cuenta genera N facturas y no una.
  */
 export type CuentaCobrar = {
   id: string
@@ -193,19 +197,18 @@ export type CuentaCobrar = {
   seller_id: string | null
   estado: EstadoCuenta
   fecha_entrega: string
-  subtotal: number
-  discount: number
-  total: number
+  total_entregado: number      // valor original de la entrega
+  total_facturado: number      // acumulado ya cobrado
+  total: number                // pendiente por facturar (lo vigente)
   notas: string | null
-  order_id: string | null      // factura generada al pagar
-  fecha_pago: string | null
+  fecha_pago: string | null    // cuándo quedó liquidada
   created_by: string | null
   created_at: string
   updated_at: string
   customer?: Pick<Customer, 'full_name' | 'phone' | 'email'>
   seller?: Pick<Profile, 'full_name'>
-  order?: Pick<Order, 'order_number'>
   items?: CuentaCobrarItem[]
+  facturas?: CuentaCobrarFactura[]
 }
 
 export type CuentaCobrarItem = {
@@ -217,10 +220,23 @@ export type CuentaCobrarItem = {
   product_type: string
   cantidad_entregada: number
   cantidad_devuelta: number
+  cantidad_facturada: number
   unit_price: number
   cost_price: number
-  subtotal: number             // (entregada - devuelta) * unit_price
+  subtotal: number             // vigente * unit_price
   created_at: string
+}
+
+/** Cada liquidación parcial genera una factura vinculada a la cuenta. */
+export type CuentaCobrarFactura = {
+  id: string
+  cuenta_id: string
+  order_id: string
+  monto: number
+  idempotency_key: string
+  created_by: string | null
+  created_at: string
+  order?: Pick<Order, 'order_number'>
 }
 
 export type TipoGasto = 'compra' | 'gasto'

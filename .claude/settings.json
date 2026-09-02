@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(git add \"app/\\(dashboard\\)/cajas/CajasClient.tsx\" \"app/\\(dashboard\\)/cajas/MovimientosCajaModal.tsx\")"
+    ]
+  }
+}

@@ -6,10 +6,13 @@ export const dynamic = 'force-dynamic'
 
 const PAGE_SIZE = 25
 
-const ESTADOS = ['pendiente', 'pagada', 'anulada'] as const
+const ESTADOS = ['pendiente', 'liquidada', 'anulada'] as const
 
+// `seller:profiles` a secas es ambiguo: esta tabla tiene DOS llaves
+// foráneas hacia profiles (seller_id y created_by), así que hay que
+// nombrar la constraint o PostgREST responde PGRST201 y no trae nada.
 const CUENTA_SELECT =
-  '*, customer:customers(full_name, phone, email), seller:profiles(full_name), order:orders(order_number), items:cuentas_cobrar_items(*)'
+  '*, customer:customers(full_name, phone, email), seller:profiles!cuentas_cobrar_seller_id_fkey(full_name), items:cuentas_cobrar_items(*), facturas:cuentas_cobrar_facturas(*, order:orders(order_number))'
 
 /** UUID imposible: fuerza cero resultados cuando la búsqueda no encuentra clientes. */
 const NO_MATCH = '00000000-0000-0000-0000-000000000000'
@@ -64,6 +67,19 @@ export default async function CuentasCobrarPage({
       applyFilters(supabase.from('cuentas_cobrar').select('id', { count: 'exact', head: true }), e),
     ),
   ])
+
+  // Sin esto, un fallo de la consulta se vuelve `data: null` y la página
+  // muestra "no hay cuentas" —indistinguible de estar realmente vacía—.
+  if (cuentasRes.error) {
+    return (
+      <div className="page-wrapper">
+        <h1 className="page-title mb-2">Cuentas x Cobrar</h1>
+        <p className="text-sm p-4 rounded-xl" style={{ background: '#fef2f2', color: '#dc2626' }}>
+          No se pudieron cargar las cuentas: {cuentasRes.error.message}
+        </p>
+      </div>
+    )
+  }
 
   const [{ data: customers }, { data: products }, { data: cajas }, { data: metodos }] =
     await Promise.all([

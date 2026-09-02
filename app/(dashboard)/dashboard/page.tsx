@@ -16,6 +16,7 @@ export default async function DashboardPage() {
     { data: lowStock },
     customersResult,
     { data: recentOrders },
+    { data: pendientes },
   ] = await Promise.all([
     supabase
       .from('orders')
@@ -34,6 +35,12 @@ export default async function DashboardPage() {
       .select('*, customer:customers(full_name), seller:profiles(full_name)')
       .order('created_at', { ascending: false })
       .limit(8),
+    // Consignación entregada y aún no cobrada. No es ingreso todavía:
+    // solo cuenta cuando la cuenta se factura y pasa a `orders`.
+    supabase
+      .from('cuentas_cobrar')
+      .select('total')
+      .eq('estado', 'pendiente'),
   ])
 
   const todayRevenue = (todayOrders ?? []).reduce((s, o) => s + Number(o.total), 0)
@@ -46,6 +53,8 @@ export default async function DashboardPage() {
     month_orders: (monthOrders ?? []).length,
     low_stock_count: (lowStock ?? []).length,
     total_customers: customersResult.count ?? 0,
+    pending_receivable: (pendientes ?? []).reduce((s, c) => s + Number(c.total), 0),
+    pending_receivable_count: (pendientes ?? []).length,
   }
 
   return (

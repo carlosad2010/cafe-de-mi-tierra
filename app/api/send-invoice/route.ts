@@ -9,6 +9,20 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
+  // Enviar la factura manda un correo real a un cliente: es una acción
+  // hacia afuera e irreversible, así que no basta con estar autenticado.
+  // Además, más abajo se marca `email_sent`, escritura que RLS le negaría
+  // a un usuario de consulta — el correo saldría y el registro quedaría
+  // sin marcar.
+  const { data: profile } = await supabase
+    .from('profiles').select('role, active').eq('id', user.id).single()
+
+  if (profile?.role === 'consulta' || profile?.active === false) {
+    return NextResponse.json(
+      { error: 'Tu usuario es de solo consulta: no puede enviar facturas' },
+      { status: 403 })
+  }
+
   const { orderId } = await req.json()
 
   const { data: order } = await supabase

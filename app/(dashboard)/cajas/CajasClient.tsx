@@ -6,6 +6,7 @@ import { Caja, MovimientoCaja, CajaTipo, MetodoPago } from '@/lib/types'
 import { formatCOP, formatDateTime } from '@/lib/utils'
 import { Wallet, Banknote, Plus, Pencil, TrendingUp, TrendingDown, X, Sigma, ArrowLeftRight, Receipt, ChevronRight } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
+import { useCanWrite } from '@/lib/perfil-context'
 import { MovimientosCajaModal } from './MovimientosCajaModal'
 import { EmptyState } from '@/components/ui/EmptyState'
 
@@ -26,6 +27,7 @@ export function CajasClient({
   movimientos: MovimientoWithCaja[]
   metodosPago: MetodoPago[]
 }) {
+  const canWrite = useCanWrite()
   const [cajas, setCajas] = useState(initialCajas)
   const [movimientos] = useState(initialMovimientos)
   const [filterCajaTipo, setFilterCajaTipo] = useState<'todas' | 'efectivo' | 'bancaria'>('todas')
@@ -168,16 +170,18 @@ export function CajasClient({
           <p className="page-subtitle">Saldos y movimientos</p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={() => { setTForm({ origen_id: '', destino_id: '', monto: '', concepto: '' }); setTError(''); setShowTraslado(true) }}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border"
-            style={{ borderColor: 'var(--border)', color: 'var(--foreground)', background: '#fff' }}>
-            <ArrowLeftRight size={15} /> Traslado
-          </button>
-          <button onClick={openCreate}
-            className="btn btn-primary">
-            <Plus size={16} /> Nueva Caja
-          </button>
+          {canWrite && (
+            <>
+              <button
+                onClick={() => { setTForm({ origen_id: '', destino_id: '', monto: '', concepto: '' }); setTError(''); setShowTraslado(true) }}
+                className="btn btn-secondary">
+                <ArrowLeftRight size={15} /> Traslado
+              </button>
+              <button onClick={openCreate} className="btn btn-primary">
+                <Plus size={16} /> Nueva Caja
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -213,9 +217,11 @@ export function CajasClient({
                   </div>
                 </div>
               </div>
-              <button onClick={() => openEdit(caja)} className="btn-icon">
-                <Pencil size={14} style={{ color: 'var(--muted-foreground)' }} />
-              </button>
+              {canWrite && (
+                <button onClick={() => openEdit(caja)} className="btn-icon">
+                  <Pencil size={14} style={{ color: 'var(--muted-foreground)' }} />
+                </button>
+              )}
             </div>
             <p className="text-xs mb-1" style={{ color: 'var(--muted-foreground)' }}>Saldo actual</p>
             <p className="text-2xl font-bold" style={{ color: caja.saldo_actual >= 0 ? 'var(--primary)' : '#dc2626' }}>
@@ -226,7 +232,7 @@ export function CajasClient({
                 Saldo inicial: {formatCOP(caja.saldo_inicial)}
               </p>
             )}
-            {!caja.activa && (
+            {!caja.activa && canWrite && (
               <button onClick={() => toggleActiva(caja)}
                 className="mt-3 text-xs underline" style={{ color: 'var(--muted-foreground)' }}>
                 Activar caja
