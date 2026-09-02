@@ -20,16 +20,17 @@ type FormState = {
 }
 
 // ── ActionBtn ────────────────────────────────────────────────────────────────
-// Professional icon button: icon transitions from gray → colored on hover
+// Botón de icono: el color de acento se resuelve en CSS (.action-btn), sin
+// estado de React por fila.
 
 type ActionVariant = 'success' | 'danger' | 'primary' | 'warning' | 'neutral'
 
-const ACTION_VARIANTS: Record<ActionVariant, { idle: string; active: string; bg: string }> = {
-  success: { idle: '#9ca3af', active: '#fff',     bg: '#16a34a' },
-  danger:  { idle: '#9ca3af', active: '#fff',     bg: '#dc2626' },
-  primary: { idle: '#9ca3af', active: '#fff',     bg: '#7c5c42' },
-  warning: { idle: '#9ca3af', active: '#fff',     bg: '#D97706' },
-  neutral: { idle: '#9ca3af', active: '#374151',  bg: '#e5e7eb' },
+const ACTION_COLORS: Record<ActionVariant, { color: string; fg?: string }> = {
+  success: { color: '#16a34a' },
+  danger:  { color: '#dc2626' },
+  primary: { color: 'var(--primary)' },
+  warning: { color: '#d97706' },
+  neutral: { color: '#e5e7eb', fg: '#374151' },
 }
 
 function ActionBtn({
@@ -38,30 +39,16 @@ function ActionBtn({
   icon: React.ElementType; label: string; onClick: () => void
   variant?: ActionVariant; disabled?: boolean
 }) {
-  const [hov, setHov] = useState(false)
-  const v = ACTION_VARIANTS[variant]
-  const active = hov && !disabled
+  const v = ACTION_COLORS[variant]
   return (
     <button
       onClick={onClick}
       title={label}
+      aria-label={label}
       disabled={disabled}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      style={{
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        width: '2rem', height: '2rem', borderRadius: '0.5rem', border: 'none',
-        cursor: disabled ? 'default' : 'pointer',
-        background: active ? v.bg : 'transparent',
-        transform: active ? 'scale(1.12)' : 'scale(1)',
-        transition: 'background 0.13s ease, transform 0.13s ease, box-shadow 0.13s ease',
-        boxShadow: active ? `0 2px 8px ${v.bg}55` : 'none',
-        opacity: disabled ? 0.4 : 1,
-      }}>
-      <Icon
-        size={14}
-        style={{ color: active ? v.active : v.idle, transition: 'color 0.13s ease' }}
-      />
+      className="action-btn"
+      style={{ '--action-color': v.color, '--action-fg': v.fg ?? '#fff' } as React.CSSProperties}>
+      <Icon size={14} />
     </button>
   )
 }
@@ -384,8 +371,7 @@ export function SalesClient({
         </div>
         <button
           onClick={() => { setCreateForm(emptyForm(defaultMetodo)); setCreateCart([]); setCreateError(''); setShowCreate(true) }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
-          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+          className="btn btn-primary">
           <Plus size={16} /> Nuevo pedido
         </button>
       </div>
@@ -491,9 +477,9 @@ export function SalesClient({
 
       {/* ── Modal: ver detalle ──────────────────────────────────────────────────── */}
       {viewOrder && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'rgba(0,0,0,0.50)', backdropFilter: 'blur(4px)' }}
+        <div className="modal-overlay"
           onClick={e => { if (e.target === e.currentTarget) setViewOrder(null) }}>
-          <div style={{ background: '#fff', borderRadius: '1.25rem', width: '100%', maxWidth: '32rem', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' }}>
+          <div className="modal-box modal-box-flush">
             <div className="p-6 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
               <div>
                 <h2 className="font-bold text-base" style={{ color: 'var(--foreground)' }}>Pedido #{viewOrder.order_number}</h2>
@@ -555,8 +541,7 @@ export function SalesClient({
               </div>
             </div>
             <div className="px-6 pb-6">
-              <button onClick={() => setViewOrder(null)} className="w-full py-2.5 rounded-lg text-sm font-medium border"
-                style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>
+              <button onClick={() => setViewOrder(null)} className="btn btn-secondary w-full">
                 Cerrar
               </button>
             </div>
@@ -635,9 +620,9 @@ function OrderModal({
   const total    = subtotal - discount
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'rgba(0,0,0,0.50)', backdropFilter: 'blur(4px)' }}
+    <div className="modal-overlay"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div style={{ background: '#fff', borderRadius: '1.25rem', width: '100%', maxWidth: '42rem', maxHeight: '95vh', overflowY: 'auto', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' }}>
+      <div className="modal-box modal-box-lg modal-box-flush">
 
         {/* Header */}
         <div className="px-6 py-5 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
@@ -701,8 +686,7 @@ function OrderModal({
                   style={{ borderColor: 'var(--border)', background: '#fff' }} />
               </div>
               <button type="button" onClick={onAddToCart} disabled={!selProd}
-                className="shrink-0 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-40 transition-colors"
-                style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+                className="btn btn-primary shrink-0">
                 Agregar
               </button>
             </div>
@@ -792,8 +776,7 @@ function OrderModal({
               Cancelar
             </button>
             <button type="submit" disabled={saving || cart.length === 0}
-              className="flex-1 py-2.5 rounded-lg text-sm font-medium disabled:opacity-60"
-              style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+              className="btn btn-primary flex-1">
               {saving ? 'Guardando...' : submitLabel}
             </button>
           </div>

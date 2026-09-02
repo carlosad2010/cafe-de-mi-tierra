@@ -198,8 +198,7 @@ export function ComprasClient({
           <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{compras.length} registros</p>
         </div>
         <button onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
-          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+          className="btn btn-primary">
           <Plus size={16} /> Registrar
         </button>
       </div>
@@ -302,8 +301,8 @@ export function ComprasClient({
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: 'rgba(0,0,0,0.4)' }}>
-          <div className="w-full max-w-md rounded-2xl shadow-xl" style={{ background: '#fff' }}>
+        <div className="modal-overlay">
+          <div className="modal-box modal-box-flush" style={{ maxWidth: '28rem' }}>
             <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
               <h2 className="text-base font-semibold" style={{ color: 'var(--foreground)' }}>
                 {editing ? 'Editar registro' : 'Nuevo registro'}
@@ -382,13 +381,11 @@ export function ComprasClient({
 
               <div className="flex gap-3 pt-2">
                 <button onClick={() => setShowModal(false)}
-                  className="flex-1 py-2.5 rounded-lg text-sm font-medium border"
-                  style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>
+                  className="btn btn-secondary flex-1">
                   Cancelar
                 </button>
                 <button onClick={handleSave} disabled={saving}
-                  className="flex-1 py-2.5 rounded-lg text-sm font-medium disabled:opacity-60"
-                  style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+                  className="btn btn-primary flex-1">
                   {saving ? 'Guardando...' : editing ? 'Actualizar' : 'Registrar'}
                 </button>
               </div>

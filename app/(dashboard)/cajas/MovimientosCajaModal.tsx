@@ -151,18 +151,11 @@ export function MovimientosCajaModal({
 
   return (
     <div
-      style={{
-        position: 'fixed', inset: 0, zIndex: 9998, display: 'flex',
-        alignItems: 'center', justifyContent: 'center', padding: '1rem',
-        background: 'rgba(0,0,0,0.50)', backdropFilter: 'blur(4px)',
-      }}
+      className="modal-overlay"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
 
-      <div className="w-full flex flex-col"
-        style={{
-          background: '#fff', borderRadius: '1.25rem', maxWidth: '64rem',
-          maxHeight: '88vh', boxShadow: '0 25px 50px rgba(0,0,0,0.25)', overflow: 'hidden',
-        }}>
+      <div className="modal-box modal-box-flush flex flex-col"
+        style={{ maxWidth: '64rem', maxHeight: '88vh', overflow: 'hidden' }}>
 
         {/* ── Header ─────────────────────────────────────── */}
         <div className="flex items-center justify-between px-6 py-4 border-b shrink-0" style={{ borderColor: 'var(--border)' }}>

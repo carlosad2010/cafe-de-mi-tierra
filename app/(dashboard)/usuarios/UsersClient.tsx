@@ -51,8 +51,7 @@ export function UsersClient({ initialProfiles }: { initialProfiles: Profile[] })
           <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{profiles.length} usuarios registrados</p>
         </div>
         <button onClick={() => { setForm({ email: '', full_name: '', password: '', role: 'seller' }); setError(''); setShowModal(true) }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
-          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+          className="btn btn-primary">
           <Plus size={16} /> Nuevo usuario
         </button>
       </div>
@@ -106,8 +105,8 @@ export function UsersClient({ initialProfiles }: { initialProfiles: Profile[] })
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: 'rgba(0,0,0,0.4)' }}>
-          <div className="w-full max-w-md rounded-2xl p-6 shadow-xl" style={{ background: '#fff' }}>
+        <div className="modal-overlay">
+          <div className="modal-box" style={{ maxWidth: '28rem' }}>
             <h2 className="text-lg font-semibold mb-5" style={{ color: 'var(--foreground)' }}>Nuevo usuario</h2>
 
             <form onSubmit={handleCreate} className="space-y-4">
@@ -135,13 +134,11 @@ export function UsersClient({ initialProfiles }: { initialProfiles: Profile[] })
 
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)}
-                  className="flex-1 py-2.5 rounded-lg text-sm font-medium border"
-                  style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>
+                  className="btn btn-secondary flex-1">
                   Cancelar
                 </button>
                 <button type="submit" disabled={saving}
-                  className="flex-1 py-2.5 rounded-lg text-sm font-medium disabled:opacity-60"
-                  style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+                  className="btn btn-primary flex-1">
                   {saving ? 'Creando...' : 'Crear usuario'}
                 </button>
               </div>

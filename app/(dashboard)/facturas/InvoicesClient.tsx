@@ -322,9 +322,9 @@ export function InvoicesClient({ orders: initialOrders }: { orders: Order[] }) {
 
       {/* ── Modal: ver factura ─────────────────────────────────── */}
       {preview && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'rgba(0,0,0,0.50)', backdropFilter: 'blur(4px)' }}
+        <div className="modal-overlay"
           onClick={e => { if (e.target === e.currentTarget) setPreview(null) }}>
-          <div className="w-full max-w-lg rounded-2xl shadow-xl bg-white max-h-[95vh] overflow-y-auto">
+          <div className="modal-box modal-box-flush">
             <InvoicePreview order={preview} />
             <div className="flex gap-3 px-6 pb-6">
               <button onClick={() => setPreview(null)} className="btn btn-secondary flex-1">Cerrar</button>
@@ -336,9 +336,9 @@ export function InvoicesClient({ orders: initialOrders }: { orders: Order[] }) {
 
       {/* ── Modal: confirmar reversión ─────────────────────────── */}
       {confirmOrder && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'rgba(0,0,0,0.50)', backdropFilter: 'blur(4px)' }}
+        <div className="modal-overlay"
           onClick={e => { if (e.target === e.currentTarget && !reversando) setConfirmOrder(null) }}>
-          <div style={{ background: '#fff', borderRadius: '1.25rem', padding: '1.5rem', width: '100%', maxWidth: '28rem', boxShadow: '0 25px 50px rgba(0,0,0,0.25)', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="modal-box" style={{ maxWidth: '28rem' }}>
             {/* Header */}
             <div className="flex items-center gap-3 mb-5">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"

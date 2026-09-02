@@ -96,8 +96,7 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
           <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{customers.length} clientes registrados</p>
         </div>
         <button onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
-          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+          className="btn btn-primary">
           <Plus size={16} /> Nuevo cliente
         </button>
       </div>
@@ -170,8 +169,8 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: 'rgba(0,0,0,0.4)' }}>
-          <div className="w-full max-w-lg rounded-2xl p-6 shadow-xl max-h-[90vh] overflow-y-auto" style={{ background: '#fff' }}>
+        <div className="modal-overlay">
+          <div className="modal-box">
             <h2 className="text-lg font-semibold mb-5" style={{ color: 'var(--foreground)' }}>
               {editing ? 'Editar cliente' : 'Nuevo cliente'}
             </h2>
@@ -236,13 +235,11 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
 
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)}
-                  className="flex-1 py-2.5 rounded-lg text-sm font-medium border"
-                  style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>
+                  className="btn btn-secondary flex-1">
                   Cancelar
                 </button>
                 <button type="submit" disabled={saving}
-                  className="flex-1 py-2.5 rounded-lg text-sm font-medium disabled:opacity-60"
-                  style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+                  className="btn btn-primary flex-1">
                   {saving ? 'Guardando...' : 'Guardar'}
                 </button>
               </div>

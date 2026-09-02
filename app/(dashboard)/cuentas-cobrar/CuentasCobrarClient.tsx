@@ -215,8 +215,7 @@ export function CuentasCobrarClient({
           </p>
         </div>
         <button onClick={() => { resetCreate(); setShowCreate(true) }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium shrink-0"
-          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+          className="btn btn-primary shrink-0">
           <Plus size={16} /> Nueva entrega
         </button>
       </div>
@@ -361,8 +360,7 @@ export function CuentasCobrarClient({
                 <input type="number" min="1" value={selQty} onChange={e => setSelQty(e.target.value)}
                   className="input-field w-20" />
                 <button type="button" onClick={addToCart} disabled={!selProd}
-                  className="px-3 rounded-lg text-sm font-medium disabled:opacity-40"
-                  style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+                  className="btn btn-primary">
                   <Plus size={16} />
                 </button>
               </div>
@@ -587,8 +585,7 @@ function ModalActions({ onCancel, onConfirm, confirmLabel, busy }: {
         Cancelar
       </button>
       <button onClick={onConfirm} disabled={busy}
-        className="flex-1 py-2.5 rounded-lg text-sm font-medium disabled:opacity-60 flex items-center justify-center gap-2"
-        style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+        className="btn btn-primary flex-1">
         {busy && <Loader2 size={14} className="animate-spin" />}
         {busy ? 'Procesando...' : confirmLabel}
       </button>
@@ -601,17 +598,9 @@ function Modal({ title, subtitle, onClose, children }: {
 }) {
   return (
     <div
-      style={{
-        position: 'fixed', inset: 0, zIndex: 9999, display: 'flex',
-        alignItems: 'center', justifyContent: 'center', padding: '1rem',
-        background: 'rgba(0,0,0,0.50)', backdropFilter: 'blur(4px)',
-      }}
+      className="modal-overlay"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div style={{
-        background: '#fff', borderRadius: '1.25rem', padding: '1.5rem',
-        width: '100%', maxWidth: '34rem', boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
-        maxHeight: '90vh', overflowY: 'auto',
-      }}>
+      <div className="modal-box" style={{ maxWidth: '34rem' }}>
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="min-w-0">
             <h2 className="text-base font-bold" style={{ color: 'var(--foreground)' }}>{title}</h2>

@@ -174,8 +174,7 @@ export function CajasClient({
             <ArrowLeftRight size={15} /> Traslado
           </button>
           <button onClick={openCreate}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
-            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+            className="btn btn-primary">
             <Plus size={16} /> Nueva Caja
           </button>
         </div>
@@ -421,9 +420,9 @@ export function CajasClient({
 
       {/* ── Modal traslado de fondos ───────────────────────── */}
       {showTraslado && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'rgba(0,0,0,0.50)', backdropFilter: 'blur(4px)' }}
+        <div className="modal-overlay"
           onClick={e => { if (e.target === e.currentTarget) setShowTraslado(false) }}>
-          <div style={{ background: '#fff', borderRadius: '1.25rem', width: '100%', maxWidth: '26rem', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' }}>
+          <div className="modal-box modal-box-flush" style={{ maxWidth: '26rem' }}>
 
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
@@ -535,8 +534,7 @@ export function CajasClient({
 
               <div className="flex gap-3 pt-1">
                 <button onClick={() => setShowTraslado(false)}
-                  className="flex-1 py-2.5 rounded-lg text-sm font-medium border"
-                  style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>
+                  className="btn btn-secondary flex-1">
                   Cancelar
                 </button>
                 <button onClick={handleTraslado} disabled={tSaving}
@@ -552,8 +550,8 @@ export function CajasClient({
 
       {/* Modal crear / editar caja */}
       {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: 'rgba(0,0,0,0.4)' }}>
-          <div className="w-full max-w-md rounded-2xl shadow-xl" style={{ background: '#fff' }}>
+        <div className="modal-overlay">
+          <div className="modal-box modal-box-flush" style={{ maxWidth: '28rem' }}>
             <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
               <h2 className="text-base font-semibold" style={{ color: 'var(--foreground)' }}>
                 {editing ? 'Editar caja' : 'Nueva caja'}
@@ -616,13 +614,11 @@ export function CajasClient({
 
               <div className="flex gap-3 pt-2">
                 <button onClick={() => setShowModal(false)}
-                  className="flex-1 py-2.5 rounded-lg text-sm font-medium border"
-                  style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>
+                  className="btn btn-secondary flex-1">
                   Cancelar
                 </button>
                 <button onClick={handleSave} disabled={saving}
-                  className="flex-1 py-2.5 rounded-lg text-sm font-medium disabled:opacity-60"
-                  style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+                  className="btn btn-primary flex-1">
                   {saving ? 'Guardando...' : 'Guardar'}
                 </button>
               </div>
