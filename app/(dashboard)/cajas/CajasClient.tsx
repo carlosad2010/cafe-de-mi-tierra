@@ -7,6 +7,7 @@ import { formatCOP, formatDateTime } from '@/lib/utils'
 import { Wallet, Banknote, Plus, Pencil, TrendingUp, TrendingDown, X, Sigma, ArrowLeftRight, Receipt, ChevronRight } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
 import { MovimientosCajaModal } from './MovimientosCajaModal'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 type CajaWithBalance = Caja & { saldo_actual: number }
 type MovimientoWithCaja = MovimientoCaja & {
@@ -163,8 +164,8 @@ export function CajasClient({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>Cajas</h1>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Saldos y movimientos</p>
+          <h1 className="page-title">Cajas</h1>
+          <p className="page-subtitle">Saldos y movimientos</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -402,10 +403,11 @@ export function CajasClient({
           </table>
           </div>
           {movimientosFiltrados.length === 0 && (
-            <div className="py-16 text-center">
-              <Wallet size={36} className="mx-auto mb-3" style={{ color: 'var(--muted-foreground)' }} />
-              <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Sin movimientos</p>
-            </div>
+            <EmptyState
+              icon={Wallet}
+              title="Sin movimientos"
+              description="Los ingresos y egresos de tus cajas aparecerán aquí."
+            />
           )}
         </div>
       </div>

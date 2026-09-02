@@ -6,6 +6,8 @@ import { Product, Presentation, TipoProducto } from '@/lib/types'
 import { formatCOP, calcMargin, calcProfit } from '@/lib/utils'
 import { Plus, Pencil, Package, TrendingUp } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
+import { SearchField } from '@/components/ui/SearchField'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 type ProductForm = {
   name: string; description: string; presentation_id: string
@@ -29,6 +31,7 @@ export function ProductsClient({ initialProducts, presentations, tiposProducto }
   const [form, setForm] = useState<ProductForm>(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [search, setSearch] = useState('')
 
   useEscKey(() => setShowModal(false))
 
@@ -105,17 +108,34 @@ export function ProductsClient({ initialProducts, presentations, tiposProducto }
   const margin2 = calcMargin(precio2V, costP)
   const profit2 = calcProfit(precio2V, costP)
 
+  const q = search.trim().toLowerCase()
+  const filtered = !q ? products : products.filter(p =>
+    [p.name, p.presentation?.nombre, p.tipo?.nombre].some(v => v?.toLowerCase().includes(q))
+  )
+
   return (
-    <div className="p-4 sm:p-6">
+    <div className="page-wrapper">
       <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>Productos</h1>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{products.length} productos registrados</p>
+          <h1 className="page-title">Productos</h1>
+          <p className="page-subtitle">
+            {q
+              ? `${filtered.length} de ${products.length} productos`
+              : `${products.length} productos registrados`}
+          </p>
         </div>
         <button onClick={openCreate} className="btn btn-primary">
           <Plus size={16} /> Nuevo producto
         </button>
       </div>
+
+      {/* Search */}
+      <SearchField
+        value={search}
+        onChange={setSearch}
+        placeholder="Buscar por nombre, presentación o tipo…"
+        className="mb-4 max-w-sm"
+      />
 
       {/* Table */}
       <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
@@ -136,7 +156,7 @@ export function ProductsClient({ initialProducts, presentations, tiposProducto }
             </tr>
           </thead>
           <tbody>
-            {products.map(p => (
+            {filtered.map(p => (
               <tr key={p.id}>
                 <td className="font-medium" style={{ color: 'var(--foreground)' }}>{p.name}</td>
                 <td className="hidden sm:table-cell">
@@ -177,11 +197,19 @@ export function ProductsClient({ initialProducts, presentations, tiposProducto }
           </tbody>
         </table>
         </div>
-        {products.length === 0 && (
-          <div className="py-16 text-center">
-            <Package size={40} className="mx-auto mb-3" style={{ color: 'var(--muted-foreground)' }} />
-            <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Sin productos. Crea el primero.</p>
-          </div>
+        {filtered.length === 0 && (
+          <EmptyState
+            icon={Package}
+            title={q ? 'Sin resultados' : 'Aún no hay productos'}
+            description={q
+              ? `Ningún producto coincide con «${search}».`
+              : 'Crea tu primer producto para poder registrar ventas.'}
+            action={!q && (
+              <button onClick={openCreate} className="btn btn-primary btn-sm">
+                <Plus size={14} /> Nuevo producto
+              </button>
+            )}
+          />
         )}
       </div>
 

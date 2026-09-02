@@ -6,6 +6,7 @@ import { Profile } from '@/lib/types'
 import { formatDate } from '@/lib/utils'
 import { Plus, UserCog } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 export function UsersClient({ initialProfiles }: { initialProfiles: Profile[] }) {
   const [profiles, setProfiles] = useState(initialProfiles)
@@ -44,11 +45,11 @@ export function UsersClient({ initialProfiles }: { initialProfiles: Profile[] })
   }
 
   return (
-    <div className="p-6">
+    <div className="page-wrapper">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>Usuarios</h1>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{profiles.length} usuarios registrados</p>
+          <h1 className="page-title">Usuarios</h1>
+          <p className="page-subtitle">{profiles.length} usuarios registrados</p>
         </div>
         <button onClick={() => { setForm({ email: '', full_name: '', password: '', role: 'seller' }); setError(''); setShowModal(true) }}
           className="btn btn-primary">
@@ -97,10 +98,11 @@ export function UsersClient({ initialProfiles }: { initialProfiles: Profile[] })
         </table>
         </div>
         {profiles.length === 0 && (
-          <div className="py-16 text-center">
-            <UserCog size={40} className="mx-auto mb-3" style={{ color: 'var(--muted-foreground)' }} />
-            <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Sin usuarios registrados</p>
-          </div>
+          <EmptyState
+            icon={UserCog}
+            title="Sin usuarios registrados"
+            description="Crea cuentas para tu equipo de ventas y administración."
+          />
         )}
       </div>
 

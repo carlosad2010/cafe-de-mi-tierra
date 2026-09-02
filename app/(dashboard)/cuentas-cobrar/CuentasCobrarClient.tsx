@@ -12,6 +12,8 @@ import {
   Package, Clock, AlertTriangle, CheckCircle2, Loader2,
 } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { SearchField } from '@/components/ui/SearchField'
 
 type CartItem = { product: Product; quantity: number }
 type PriceTier = 'precio1' | 'precio2'
@@ -43,6 +45,7 @@ export function CuentasCobrarClient({
   const router = useRouter()
 
   const [filtro, setFiltro] = useState<'todas' | EstadoCuenta>('pendiente')
+  const [search, setSearch] = useState('')
 
   // Crear
   const [showCreate, setShowCreate]   = useState(false)
@@ -198,19 +201,25 @@ export function CuentasCobrarClient({
 
   // ── Derivados ───────────────────────────────────────────────────────────────
 
-  const visibles     = filtro === 'todas' ? cuentas : cuentas.filter(c => c.estado === filtro)
+  const q            = search.trim().toLowerCase()
+  const buscadas     = !q ? cuentas : cuentas.filter(c =>
+    String(c.numero).includes(q) || (c.customer?.full_name?.toLowerCase().includes(q) ?? false)
+  )
+  const visibles     = filtro === 'todas' ? buscadas : buscadas.filter(c => c.estado === filtro)
+  const conteos: Record<string, number> = { todas: buscadas.length }
+  for (const c of buscadas) conteos[c.estado] = (conteos[c.estado] ?? 0) + 1
   const pendientes   = cuentas.filter(c => c.estado === 'pendiente')
   const totalPend    = pendientes.reduce((s, c) => s + c.total, 0)
   const masAntigua   = pendientes.reduce<CuentaCobrar | null>(
     (old, c) => !old || c.fecha_entrega < old.fecha_entrega ? c : old, null)
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
+    <div className="page-wrapper space-y-6">
       {/* ── Header ── */}
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>Cuentas x Cobrar</h1>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
+          <h1 className="page-title">Cuentas x Cobrar</h1>
+          <p className="page-subtitle">
             Mercancía entregada en consignación · {pendientes.length} pendiente(s)
           </p>
         </div>
@@ -239,18 +248,26 @@ export function CuentasCobrarClient({
           valueColor={masAntigua && diasDesde(masAntigua.fecha_entrega) > 60 ? '#dc2626' : 'var(--foreground)'} />
       </div>
 
-      {/* ── Filtros ── */}
-      <div className="flex gap-2 flex-wrap">
-        {(['pendiente', 'pagada', 'anulada', 'todas'] as const).map(f => (
-          <button key={f} onClick={() => setFiltro(f)}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-            style={{
-              background: filtro === f ? 'var(--primary)' : 'var(--secondary)',
-              color: filtro === f ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
-            }}>
-            {f === 'todas' ? 'Todas' : ESTADO_CONFIG[f].label}
-          </button>
-        ))}
+      {/* ── Búsqueda y filtros ── */}
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchField
+          value={search}
+          onChange={setSearch}
+          placeholder="Buscar por # o cliente…"
+          className="w-full sm:w-64"
+        />
+        <div className="flex gap-2 flex-wrap">
+          {(['pendiente', 'pagada', 'anulada', 'todas'] as const).map(f => (
+            <button
+              key={f}
+              onClick={() => setFiltro(f)}
+              data-active={filtro === f}
+              className="filter-pill">
+              {f === 'todas' ? 'Todas' : ESTADO_CONFIG[f].label}
+              <span className="text-xs opacity-70">{conteos[f] ?? 0}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ── Tabla ── */}
@@ -260,9 +277,7 @@ export function CuentasCobrarClient({
             <thead>
               <tr>
                 {['#', 'Cliente', 'Entrega', 'Días', 'Total', 'Estado', 'Acciones'].map((h, i) => (
-                  <th key={h}
-                    className={`px-4 py-3 text-left font-medium ${i === 3 || i === 2 ? 'hidden sm:table-cell' : ''}`}
-                    style={{ color: 'var(--muted-foreground)' }}>{h}</th>
+                  <th key={h} className={i === 3 || i === 2 ? 'hidden sm:table-cell' : ''}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -313,12 +328,15 @@ export function CuentasCobrarClient({
           </table>
         </div>
         {visibles.length === 0 && (
-          <div className="py-16 text-center">
-            <HandCoins size={40} className="mx-auto mb-3" style={{ color: 'var(--muted-foreground)' }} />
-            <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-              {filtro === 'pendiente' ? 'No hay cuentas pendientes por cobrar' : 'Sin cuentas'}
-            </p>
-          </div>
+          <EmptyState
+            icon={HandCoins}
+            title={q ? 'Sin resultados' : filtro === 'pendiente' ? 'No hay cuentas pendientes' : 'Sin cuentas'}
+            description={q
+              ? `Ninguna cuenta coincide con «${search}».`
+              : filtro === 'pendiente'
+                ? 'Todo lo entregado en consignación está cobrado.'
+                : 'Las entregas en consignación aparecerán aquí.'}
+          />
         )}
       </div>
 

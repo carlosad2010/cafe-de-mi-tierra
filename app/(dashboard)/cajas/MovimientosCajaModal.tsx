@@ -9,6 +9,7 @@ import {
   X, TrendingUp, TrendingDown, Search, Wallet, Banknote,
   Loader2, Receipt, Flag, ChevronLeft, ChevronRight,
 } from 'lucide-react'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 type MovimientoDetalle = MovimientoCaja & {
   orden: { order_number: number; customer: { full_name: string } | null } | null
@@ -240,14 +241,13 @@ export function MovimientosCajaModal({
               <p className="text-sm p-3 rounded-lg" style={{ background: '#fef2f2', color: '#dc2626' }}>{error}</p>
             </div>
           ) : filtered.length === 0 ? (
-            <div className="py-20 text-center">
-              <Receipt size={36} className="mx-auto mb-3" style={{ color: 'var(--muted-foreground)' }} />
-              <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-                {rows.length === 0
-                  ? 'Esta caja aún no tiene transacciones'
-                  : 'Ningún movimiento coincide con el filtro'}
-              </p>
-            </div>
+            <EmptyState
+              icon={Receipt}
+              title={rows.length === 0 ? 'Esta caja aún no tiene transacciones' : 'Sin coincidencias'}
+              description={rows.length === 0
+                ? 'Cada venta o gasto asociado a la caja quedará registrado aquí.'
+                : 'Ningún movimiento coincide con el filtro aplicado.'}
+            />
           ) : (
             <table className="data-table">
               <thead className="sticky top-0 z-10">

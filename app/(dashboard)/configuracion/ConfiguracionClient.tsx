@@ -613,10 +613,10 @@ export function ConfiguracionClient({
   const [tab, setTab] = useState<Tab>('presentaciones')
 
   return (
-    <div className="p-6">
+    <div className="page-wrapper">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>Configuración</h1>
-        <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
+        <h1 className="page-title">Configuración</h1>
+        <p className="page-subtitle">
           Datos maestros del sistema — solo visible para administradores
         </p>
       </div>

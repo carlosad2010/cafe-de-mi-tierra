@@ -6,6 +6,7 @@ import { Caja, Compra, TipoGasto } from '@/lib/types'
 import { formatCOP, formatDate } from '@/lib/utils'
 import { Plus, ShoppingBag, Pencil, Trash2, X, Banknote, Wallet, Tag, Receipt } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 type CompraFull = Compra & {
   caja?: Pick<Caja, 'nombre' | 'tipo'>
@@ -194,8 +195,8 @@ export function ComprasClient({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>Compras y Gastos</h1>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{compras.length} registros</p>
+          <h1 className="page-title">Compras y Gastos</h1>
+          <p className="page-subtitle">{compras.length} registros</p>
         </div>
         <button onClick={openCreate}
           className="btn btn-primary">
@@ -292,10 +293,11 @@ export function ComprasClient({
         </table>
         </div>
         {filtered.length === 0 && (
-          <div className="py-16 text-center">
-            <ShoppingBag size={36} className="mx-auto mb-3" style={{ color: 'var(--muted-foreground)' }} />
-            <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Sin registros</p>
-          </div>
+          <EmptyState
+            icon={ShoppingBag}
+            title="Sin registros"
+            description="Registra compras y gastos para verlos reflejados en tus informes."
+          />
         )}
       </div>
 

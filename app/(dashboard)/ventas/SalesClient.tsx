@@ -6,6 +6,8 @@ import { Order, Product, Customer, MetodoPago } from '@/lib/types'
 import { formatCOP, formatDateTime, ORDER_STATUS, PAYMENT_METHODS } from '@/lib/utils'
 import { Plus, ShoppingCart, Pencil, Trash2, Check, X, Eye } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
+import { SearchField } from '@/components/ui/SearchField'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -85,6 +87,7 @@ export function SalesClient({
   // List state
   const [orders, setOrders]       = useState(initialOrders)
   const [filterStatus, setFilterStatus] = useState('todos')
+  const [search, setSearch]             = useState('')
 
   // Create modal
   const [showCreate, setShowCreate] = useState(false)
@@ -357,17 +360,36 @@ export function SalesClient({
 
   // ── Filtered list ─────────────────────────────────────────────────────────────
 
-  const filtered = filterStatus === 'todos' ? orders : orders.filter(o => o.status === filterStatus)
+  const q = search.trim().toLowerCase()
+
+  /** Coincidencia por número de pedido, cliente o vendedor. */
+  function matchesSearch(order: Order) {
+    if (!q) return true
+    const cliente  = (order as any).customer?.full_name?.toLowerCase() ?? ''
+    const vendedor = (order as any).seller?.full_name?.toLowerCase() ?? ''
+    return String(order.order_number).includes(q) || cliente.includes(q) || vendedor.includes(q)
+  }
+
+  const searched = orders.filter(matchesSearch)
+  const filtered = filterStatus === 'todos' ? searched : searched.filter(o => o.status === filterStatus)
+
+  // Contador por estado — se calcula sobre el resultado de la búsqueda
+  const statusCounts: Record<string, number> = { todos: searched.length }
+  for (const o of searched) statusCounts[o.status] = (statusCounts[o.status] ?? 0) + 1
 
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="p-4 sm:p-6">
+    <div className="page-wrapper">
       {/* Header */}
       <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>Ventas</h1>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{orders.length} pedidos registrados</p>
+          <h1 className="page-title">Ventas</h1>
+          <p className="page-subtitle">
+            {q
+              ? `${filtered.length} de ${orders.length} pedidos`
+              : `${orders.length} pedidos registrados`}
+          </p>
         </div>
         <button
           onClick={() => { setCreateForm(emptyForm(defaultMetodo)); setCreateCart([]); setCreateError(''); setShowCreate(true) }}
@@ -376,18 +398,26 @@ export function SalesClient({
         </button>
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-2 mb-4 flex-wrap">
-        {['todos', 'pendiente', 'completado', 'cancelado'].map(s => (
-          <button key={s} onClick={() => setFilterStatus(s)}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all"
-            style={{
-              background: filterStatus === s ? 'var(--primary)' : 'var(--secondary)',
-              color: filterStatus === s ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
-            }}>
-            {s === 'todos' ? 'Todos' : ORDER_STATUS[s]?.label}
-          </button>
-        ))}
+      {/* Búsqueda y filtros */}
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <SearchField
+          value={search}
+          onChange={setSearch}
+          placeholder="Buscar por # de pedido, cliente o vendedor…"
+          className="w-full sm:w-72"
+        />
+        <div className="flex gap-2 flex-wrap">
+          {['todos', 'pendiente', 'completado', 'cancelado'].map(s => (
+            <button
+              key={s}
+              onClick={() => setFilterStatus(s)}
+              data-active={filterStatus === s}
+              className="filter-pill">
+              {s === 'todos' ? 'Todos' : ORDER_STATUS[s]?.label}
+              <span className="text-xs opacity-70">{statusCounts[s] ?? 0}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Orders table */}
@@ -468,10 +498,13 @@ export function SalesClient({
           </table>
         </div>
         {filtered.length === 0 && (
-          <div className="py-16 text-center">
-            <ShoppingCart size={40} className="mx-auto mb-3" style={{ color: 'var(--muted-foreground)' }} />
-            <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Sin pedidos</p>
-          </div>
+          <EmptyState
+            icon={ShoppingCart}
+            title={q || filterStatus !== 'todos' ? 'Sin resultados' : 'Aún no hay pedidos'}
+            description={q || filterStatus !== 'todos'
+              ? 'Ningún pedido coincide con la búsqueda o el filtro aplicado.'
+              : 'Registra tu primer pedido para verlo aquí.'}
+          />
         )}
       </div>
 

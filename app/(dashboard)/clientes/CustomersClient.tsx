@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Customer, DocumentType } from '@/lib/types'
-import { Plus, Pencil, Users, Search } from 'lucide-react'
+import { Plus, Pencil, Users } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { SearchField } from '@/components/ui/SearchField'
 
 const DOC_TYPES: DocumentType[] = ['CC', 'NIT', 'CE', 'PPN', 'otro']
 
@@ -89,11 +91,11 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
   }
 
   return (
-    <div className="p-6">
+    <div className="page-wrapper">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>Clientes</h1>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{customers.length} clientes registrados</p>
+          <h1 className="page-title">Clientes</h1>
+          <p className="page-subtitle">{customers.length} clientes registrados</p>
         </div>
         <button onClick={openCreate}
           className="btn btn-primary">
@@ -102,15 +104,12 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
       </div>
 
       {/* Search */}
-      <div className="relative mb-4 max-w-sm">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--muted-foreground)' }} />
-        <input
-          value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Buscar cliente..."
-          className="w-full pl-9 pr-3 py-2 rounded-lg border text-sm outline-none"
-          style={{ borderColor: 'var(--border)', background: '#fff' }}
-        />
-      </div>
+      <SearchField
+        value={search}
+        onChange={setSearch}
+        placeholder="Buscar por nombre, documento, teléfono o correo…"
+        className="mb-4 max-w-sm"
+      />
 
       {/* Table */}
       <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
@@ -158,12 +157,18 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
         </table>
         </div>
         {filtered.length === 0 && (
-          <div className="py-16 text-center">
-            <Users size={40} className="mx-auto mb-3" style={{ color: 'var(--muted-foreground)' }} />
-            <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-              {search ? 'Sin resultados' : 'Sin clientes aún. Crea el primero.'}
-            </p>
-          </div>
+          <EmptyState
+            icon={Users}
+            title={search ? 'Sin resultados' : 'Aún no hay clientes'}
+            description={search
+              ? `Ningún cliente coincide con «${search}».`
+              : 'Registra tu primer cliente para empezar a facturar.'}
+            action={!search && (
+              <button onClick={openCreate} className="btn btn-primary btn-sm">
+                <Plus size={14} /> Nuevo cliente
+              </button>
+            )}
+          />
         )}
       </div>
 

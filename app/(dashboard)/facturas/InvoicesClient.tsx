@@ -138,11 +138,11 @@ export function InvoicesClient({ orders: initialOrders }: { orders: Order[] }) {
 
   // ── Render ───────────────────────────────────────────────────
   return (
-    <div className="p-4 sm:p-6">
+    <div className="page-wrapper">
       <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>Facturas</h1>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
+          <h1 className="page-title">Facturas</h1>
+          <p className="page-subtitle">
             Pedidos completados ·{' '}
             {hasFilter
               ? <><span style={{ color: 'var(--primary)', fontWeight: 600 }}>{filtered.length}</span> de {orders.length} facturas</>
@@ -305,10 +305,11 @@ export function InvoicesClient({ orders: initialOrders }: { orders: Order[] }) {
           </table>
         </div>
         {filtered.length === 0 && (
-          <div className="py-16 text-center">
-            <FileText size={40} className="mx-auto mb-3" style={{ color: 'var(--muted-foreground)' }} />
-            <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-              {hasFilter ? 'Sin resultados para los filtros aplicados.' : 'Sin facturas aún. Completa un pedido primero.'}
+          <div className="empty-state">
+            <div className="empty-state-icon"><FileText size={26} /></div>
+            <p className="empty-state-title">{hasFilter ? 'Sin resultados' : 'Aún no hay facturas'}</p>
+            <p className="empty-state-description">
+              {hasFilter ? 'Ninguna factura coincide con los filtros aplicados.' : 'Completa un pedido para generar la primera factura.'}
             </p>
             {hasFilter && (
               <button onClick={() => { setFilterCliente(''); setFilterMetodo('') }}

@@ -8,6 +8,7 @@ import {
   TrendingUp, ShoppingCart, Users, AlertTriangle,
   DollarSign, Package, ArrowUpRight, ChevronRight,
 } from 'lucide-react'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 type Stats = {
   today_revenue: number; today_orders: number
@@ -210,13 +211,11 @@ export function DashboardClient({
           </div>
 
           {recentOrders.length === 0 ? (
-            <div className="py-16 text-center">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3"
-                style={{ background: '#F5F0EB' }}>
-                <ShoppingCart size={22} style={{ color: '#D6D3D1' }} />
-              </div>
-              <p className="text-sm font-medium" style={{ color: '#A8A29E' }}>Sin pedidos aún</p>
-            </div>
+            <EmptyState
+              icon={ShoppingCart}
+              title="Sin pedidos aún"
+              description="Los pedidos más recientes aparecerán aquí en cuanto registres el primero."
+            />
           ) : (
             <div className="divide-y" style={{ borderColor: '#FAFAF9' }}>
               {recentOrders.map((order: any, idx: number) => {

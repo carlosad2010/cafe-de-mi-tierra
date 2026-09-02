@@ -6,6 +6,7 @@ import { Product, InventoryMovement } from '@/lib/types'
 import { formatDateTime } from '@/lib/utils'
 import { Plus, Warehouse, ArrowDownCircle, ArrowUpCircle, RefreshCcw } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 const MOVEMENT_TYPES = [
   { value: 'entrada', label: 'Entrada', icon: ArrowDownCircle, color: '#16a34a' },
@@ -93,11 +94,11 @@ export function InventoryClient({
   }
 
   return (
-    <div className="p-6">
+    <div className="page-wrapper">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>Inventario</h1>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Control de stock y movimientos</p>
+          <h1 className="page-title">Inventario</h1>
+          <p className="page-subtitle">Control de stock y movimientos</p>
         </div>
         <button onClick={() => { setForm({ product_id: '', type: 'entrada', quantity: '', reason: '' }); setError(''); setShowModal(true) }}
           className="btn btn-primary">
@@ -190,10 +191,11 @@ export function InventoryClient({
         </table>
         </div>
         {movements.length === 0 && (
-          <div className="py-12 text-center">
-            <Warehouse size={36} className="mx-auto mb-2" style={{ color: 'var(--muted-foreground)' }} />
-            <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Sin movimientos registrados</p>
-          </div>
+          <EmptyState
+            icon={Warehouse}
+            title="Sin movimientos registrados"
+            description="Las entradas, salidas y ajustes de stock quedarán registrados aquí."
+          />
         )}
       </div>
 
