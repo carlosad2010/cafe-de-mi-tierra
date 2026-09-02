@@ -1,6 +1,7 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Order, Product, Customer, MetodoPago } from '@/lib/types'
 import { formatCOP, formatDateTime, ORDER_STATUS, PAYMENT_METHODS } from '@/lib/utils'
@@ -8,6 +9,7 @@ import { Plus, ShoppingCart, Pencil, Trash2, Check, X, Eye } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
 import { SearchField } from '@/components/ui/SearchField'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { Pagination } from '@/components/ui/Pagination'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -76,18 +78,35 @@ function detectPriceTier(items: any[], products: Product[]): 'precio1' | 'precio
 
 export function SalesClient({
   initialOrders, products, customers, metodosPago,
+  page, pageSize, total, status, query, statusCounts,
 }: {
   initialOrders: Order[]
   products: Product[]
   customers: Customer[]
   metodosPago: MetodoPago[]
+  page: number
+  pageSize: number
+  total: number
+  status: string
+  query: string
+  statusCounts: Record<string, number>
 }) {
   const defaultMetodo = metodosPago[0]?.nombre ?? 'Efectivo'
+  const router   = useRouter()
+  const pathname = usePathname()
+  const [navigating, startNavigation] = useTransition()
 
-  // List state
-  const [orders, setOrders]       = useState(initialOrders)
-  const [filterStatus, setFilterStatus] = useState('todos')
-  const [search, setSearch]             = useState('')
+  // List state — el servidor ya entrega la página filtrada; el estado local
+  // solo absorbe las mutaciones optimistas (crear, editar, cambiar estado).
+  const [orders, setOrders] = useState(initialOrders)
+  const [seed, setSeed]     = useState(initialOrders)
+  if (seed !== initialOrders) {
+    setSeed(initialOrders)
+    setOrders(initialOrders)
+  }
+
+  // Texto del buscador: local para no perder el foco entre navegaciones
+  const [search, setSearch] = useState(query)
 
   // Create modal
   const [showCreate, setShowCreate] = useState(false)
@@ -228,6 +247,7 @@ export function SalesClient({
       .eq('id', order.id).single()
 
     setOrders(prev => [fullOrder, ...prev])
+    router.refresh()   // recalcula totales y contadores del servidor
     setShowCreate(false)
     setCreateCart([])
     setCreateForm(emptyForm(defaultMetodo))
@@ -284,20 +304,21 @@ export function SalesClient({
       .eq('id', editOrder.id).single()
 
     if (fullOrder) setOrders(prev => prev.map(o => o.id === editOrder.id ? fullOrder : o))
+    router.refresh()
     setEditOrder(null)
     setEditSaving(false)
   }
 
   // ── Status update ─────────────────────────────────────────────────────────────
 
-  async function updateStatus(orderId: string, status: Order['status']) {
+  async function updateStatus(orderId: string, nextStatus: Order['status']) {
     // Candado síncrono: dos clics en el mismo tick no pueden pasar los dos.
     if (inFlight.current.has(orderId)) return
     inFlight.current.add(orderId)
     setBusyOrders(prev => [...prev, orderId])
 
     try {
-      await runStatusUpdate(orderId, status)
+      await runStatusUpdate(orderId, nextStatus)
     } finally {
       inFlight.current.delete(orderId)
       setBusyOrders(prev => prev.filter(id => id !== orderId))
@@ -356,26 +377,33 @@ export function SalesClient({
     }
 
     setOrders(prev => prev.map(o => o.id === orderId ? data : o))
+    router.refresh()   // los contadores por estado viven en el servidor
   }
 
   // ── Filtered list ─────────────────────────────────────────────────────────────
 
-  const q = search.trim().toLowerCase()
-
-  /** Coincidencia por número de pedido, cliente o vendedor. */
-  function matchesSearch(order: Order) {
-    if (!q) return true
-    const cliente  = (order as any).customer?.full_name?.toLowerCase() ?? ''
-    const vendedor = (order as any).seller?.full_name?.toLowerCase() ?? ''
-    return String(order.order_number).includes(q) || cliente.includes(q) || vendedor.includes(q)
+  /** Reescribe la URL con los filtros activos; el servidor devuelve la página. */
+  function navigate(next: { status?: string; q?: string; page?: number }) {
+    const params   = new URLSearchParams()
+    const nextStat = next.status ?? status
+    const nextQ    = (next.q ?? query).trim()
+    const nextPage = next.page ?? 1
+    if (nextStat !== 'todos') params.set('status', nextStat)
+    if (nextQ)                params.set('q', nextQ)
+    if (nextPage > 1)         params.set('page', String(nextPage))
+    const qs = params.toString()
+    startNavigation(() => router.push(qs ? `${pathname}?${qs}` : pathname))
   }
 
-  const searched = orders.filter(matchesSearch)
-  const filtered = filterStatus === 'todos' ? searched : searched.filter(o => o.status === filterStatus)
+  // Búsqueda con retardo: evita una consulta por cada tecla
+  useEffect(() => {
+    if (search.trim() === query) return
+    const timer = setTimeout(() => navigate({ q: search, page: 1 }), 350)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search])
 
-  // Contador por estado — se calcula sobre el resultado de la búsqueda
-  const statusCounts: Record<string, number> = { todos: searched.length }
-  for (const o of searched) statusCounts[o.status] = (statusCounts[o.status] ?? 0) + 1
+  const hasFilters = !!query || status !== 'todos'
 
   // ── Render ────────────────────────────────────────────────────────────────────
 
@@ -386,9 +414,9 @@ export function SalesClient({
         <div>
           <h1 className="page-title">Ventas</h1>
           <p className="page-subtitle">
-            {q
-              ? `${filtered.length} de ${orders.length} pedidos`
-              : `${orders.length} pedidos registrados`}
+            {hasFilters
+              ? `${total} pedido(s) coinciden con el filtro`
+              : `${total} pedidos registrados`}
           </p>
         </div>
         <button
@@ -403,15 +431,15 @@ export function SalesClient({
         <SearchField
           value={search}
           onChange={setSearch}
-          placeholder="Buscar por # de pedido, cliente o vendedor…"
+          placeholder="Buscar por # de pedido o cliente…"
           className="w-full sm:w-72"
         />
         <div className="flex gap-2 flex-wrap">
           {['todos', 'pendiente', 'completado', 'cancelado'].map(s => (
             <button
               key={s}
-              onClick={() => setFilterStatus(s)}
-              data-active={filterStatus === s}
+              onClick={() => navigate({ status: s, page: 1 })}
+              data-active={status === s}
               className="filter-pill">
               {s === 'todos' ? 'Todos' : ORDER_STATUS[s]?.label}
               <span className="text-xs opacity-70">{statusCounts[s] ?? 0}</span>
@@ -421,7 +449,10 @@ export function SalesClient({
       </div>
 
       {/* Orders table */}
-      <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
+      <div className="rounded-xl border" style={{
+        background: '#fff', borderColor: 'var(--border)', overflow: 'hidden',
+        opacity: navigating ? 0.6 : 1, transition: 'opacity 0.15s ease',
+      }}>
         <div className="table-wrap">
           <table className="data-table">
             <thead>
@@ -437,7 +468,7 @@ export function SalesClient({
               </tr>
             </thead>
             <tbody>
-              {filtered.map(order => {
+              {orders.map(order => {
                 const st = ORDER_STATUS[order.status]
                 const isPending = order.status === 'pendiente'
                 const isBusy    = busyOrders.includes(order.id)
@@ -497,15 +528,22 @@ export function SalesClient({
             </tbody>
           </table>
         </div>
-        {filtered.length === 0 && (
+        {orders.length === 0 && (
           <EmptyState
             icon={ShoppingCart}
-            title={q || filterStatus !== 'todos' ? 'Sin resultados' : 'Aún no hay pedidos'}
-            description={q || filterStatus !== 'todos'
+            title={hasFilters ? 'Sin resultados' : 'Aún no hay pedidos'}
+            description={hasFilters
               ? 'Ningún pedido coincide con la búsqueda o el filtro aplicado.'
               : 'Registra tu primer pedido para verlo aquí.'}
           />
         )}
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          busy={navigating}
+          onPageChange={p => navigate({ page: p })}
+        />
       </div>
 
       {/* ── Modal: ver detalle ──────────────────────────────────────────────────── */}

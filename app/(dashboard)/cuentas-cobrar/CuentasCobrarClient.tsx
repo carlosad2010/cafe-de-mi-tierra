@@ -1,7 +1,7 @@
 'use client'
 
-import { useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useRef, useState, useTransition } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
   Caja, CuentaCobrar, CuentaCobrarItem, Customer, EstadoCuenta, MetodoPago, Product,
@@ -14,6 +14,7 @@ import {
 import { useEscKey } from '@/lib/hooks/useEscKey'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { SearchField } from '@/components/ui/SearchField'
+import { Pagination } from '@/components/ui/Pagination'
 
 type CartItem = { product: Product; quantity: number }
 type PriceTier = 'precio1' | 'precio2'
@@ -35,17 +36,27 @@ function diasDesde(fecha: string) {
 
 export function CuentasCobrarClient({
   cuentas, customers, products, cajas, metodosPago,
+  page, pageSize, total, estado, query, conteos, resumen,
 }: {
   cuentas: CuentaCobrar[]
   customers: Customer[]
   products: Product[]
   cajas: Pick<Caja, 'id' | 'nombre' | 'tipo'>[]
   metodosPago: MetodoPago[]
+  page: number
+  pageSize: number
+  total: number
+  estado: string
+  query: string
+  conteos: Record<string, number>
+  resumen: { pendientes: number; totalPendiente: number; diasMasAntigua: number | null }
 }) {
-  const router = useRouter()
+  const router   = useRouter()
+  const pathname = usePathname()
+  const [navigating, startNavigation] = useTransition()
 
-  const [filtro, setFiltro] = useState<'todas' | EstadoCuenta>('pendiente')
-  const [search, setSearch] = useState('')
+  // Texto del buscador: local para no perder el foco entre navegaciones
+  const [search, setSearch] = useState(query)
 
   // Crear
   const [showCreate, setShowCreate]   = useState(false)
@@ -201,17 +212,28 @@ export function CuentasCobrarClient({
 
   // ── Derivados ───────────────────────────────────────────────────────────────
 
-  const q            = search.trim().toLowerCase()
-  const buscadas     = !q ? cuentas : cuentas.filter(c =>
-    String(c.numero).includes(q) || (c.customer?.full_name?.toLowerCase().includes(q) ?? false)
-  )
-  const visibles     = filtro === 'todas' ? buscadas : buscadas.filter(c => c.estado === filtro)
-  const conteos: Record<string, number> = { todas: buscadas.length }
-  for (const c of buscadas) conteos[c.estado] = (conteos[c.estado] ?? 0) + 1
-  const pendientes   = cuentas.filter(c => c.estado === 'pendiente')
-  const totalPend    = pendientes.reduce((s, c) => s + c.total, 0)
-  const masAntigua   = pendientes.reduce<CuentaCobrar | null>(
-    (old, c) => !old || c.fecha_entrega < old.fecha_entrega ? c : old, null)
+  const hasFilters = !!query || estado !== 'todas'
+
+  /** Reescribe la URL con los filtros activos; el servidor devuelve la página. */
+  function navigate(next: { estado?: string; q?: string; page?: number }) {
+    const params   = new URLSearchParams()
+    const nextEst  = next.estado ?? estado
+    const nextQ    = (next.q ?? query).trim()
+    const nextPage = next.page ?? 1
+    if (nextEst !== 'todas') params.set('estado', nextEst)
+    if (nextQ)               params.set('q', nextQ)
+    if (nextPage > 1)        params.set('page', String(nextPage))
+    const qs = params.toString()
+    startNavigation(() => router.push(qs ? `${pathname}?${qs}` : pathname))
+  }
+
+  // Búsqueda con retardo: evita una consulta por cada tecla
+  useEffect(() => {
+    if (search.trim() === query) return
+    const timer = setTimeout(() => navigate({ q: search, page: 1 }), 350)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search])
 
   return (
     <div className="page-wrapper space-y-6">
@@ -220,7 +242,9 @@ export function CuentasCobrarClient({
         <div>
           <h1 className="page-title">Cuentas x Cobrar</h1>
           <p className="page-subtitle">
-            Mercancía entregada en consignación · {pendientes.length} pendiente(s)
+            {hasFilters
+              ? `${total} cuenta(s) coinciden con el filtro`
+              : `Mercancía entregada en consignación · ${resumen.pendientes} pendiente(s)`}
           </p>
         </div>
         <button onClick={() => { resetCreate(); setShowCreate(true) }}
@@ -239,13 +263,13 @@ export function CuentasCobrarClient({
       {/* ── KPIs ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <SummaryCard icon={<HandCoins size={18} style={{ color: '#92400e' }} />} bg="#fef3c7"
-          label="Pendiente por cobrar" value={formatCOP(totalPend)} valueColor="#92400e" />
+          label="Pendiente por cobrar" value={formatCOP(resumen.totalPendiente)} valueColor="#92400e" />
         <SummaryCard icon={<Package size={18} style={{ color: '#1e40af' }} />} bg="#dbeafe"
-          label="Cuentas abiertas" value={String(pendientes.length)} valueColor="var(--foreground)" />
+          label="Cuentas abiertas" value={String(resumen.pendientes)} valueColor="var(--foreground)" />
         <SummaryCard icon={<Clock size={18} style={{ color: '#b91c1c' }} />} bg="#fee2e2"
           label="Entrega más antigua"
-          value={masAntigua ? `${diasDesde(masAntigua.fecha_entrega)} días` : '—'}
-          valueColor={masAntigua && diasDesde(masAntigua.fecha_entrega) > 60 ? '#dc2626' : 'var(--foreground)'} />
+          value={resumen.diasMasAntigua !== null ? `${resumen.diasMasAntigua} días` : '—'}
+          valueColor={resumen.diasMasAntigua !== null && resumen.diasMasAntigua > 60 ? '#dc2626' : 'var(--foreground)'} />
       </div>
 
       {/* ── Búsqueda y filtros ── */}
@@ -260,8 +284,8 @@ export function CuentasCobrarClient({
           {(['pendiente', 'pagada', 'anulada', 'todas'] as const).map(f => (
             <button
               key={f}
-              onClick={() => setFiltro(f)}
-              data-active={filtro === f}
+              onClick={() => navigate({ estado: f, page: 1 })}
+              data-active={estado === f}
               className="filter-pill">
               {f === 'todas' ? 'Todas' : ESTADO_CONFIG[f].label}
               <span className="text-xs opacity-70">{conteos[f] ?? 0}</span>
@@ -271,7 +295,10 @@ export function CuentasCobrarClient({
       </div>
 
       {/* ── Tabla ── */}
-      <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
+      <div className="rounded-xl border" style={{
+        background: '#fff', borderColor: 'var(--border)', overflow: 'hidden',
+        opacity: navigating ? 0.6 : 1, transition: 'opacity 0.15s ease',
+      }}>
         <div className="table-wrap">
           <table className="data-table">
             <thead>
@@ -282,7 +309,7 @@ export function CuentasCobrarClient({
               </tr>
             </thead>
             <tbody>
-              {visibles.map(c => {
+              {cuentas.map(c => {
                 const cfg   = ESTADO_CONFIG[c.estado]
                 const dias  = diasDesde(c.fecha_entrega)
                 const abierta = c.estado === 'pendiente'
@@ -327,17 +354,24 @@ export function CuentasCobrarClient({
             </tbody>
           </table>
         </div>
-        {visibles.length === 0 && (
+        {cuentas.length === 0 && (
           <EmptyState
             icon={HandCoins}
-            title={q ? 'Sin resultados' : filtro === 'pendiente' ? 'No hay cuentas pendientes' : 'Sin cuentas'}
-            description={q
-              ? `Ninguna cuenta coincide con «${search}».`
-              : filtro === 'pendiente'
+            title={query ? 'Sin resultados' : estado === 'pendiente' ? 'No hay cuentas pendientes' : 'Sin cuentas'}
+            description={query
+              ? `Ninguna cuenta coincide con «${query}».`
+              : estado === 'pendiente'
                 ? 'Todo lo entregado en consignación está cobrado.'
                 : 'Las entregas en consignación aparecerán aquí.'}
           />
         )}
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          busy={navigating}
+          onPageChange={p => navigate({ page: p })}
+        />
       </div>
 
       {/* ══ Modal: nueva entrega ══════════════════════════════ */}
