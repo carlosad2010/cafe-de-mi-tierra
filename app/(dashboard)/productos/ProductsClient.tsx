@@ -188,7 +188,7 @@ export function ProductsClient({ initialProducts, presentations, tiposProducto }
                   </button>
                 </td>
                 <td>
-                  <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+                  <button onClick={() => openEdit(p)} className="btn-icon">
                     <Pencil size={14} style={{ color: 'var(--muted-foreground)' }} />
                   </button>
                 </td>

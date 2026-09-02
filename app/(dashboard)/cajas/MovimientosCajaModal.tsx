@@ -176,7 +176,7 @@ export function MovimientosCajaModal({
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 shrink-0">
+          <button onClick={onClose} className="btn-icon shrink-0">
             <X size={16} style={{ color: 'var(--muted-foreground)' }} />
           </button>
         </div>

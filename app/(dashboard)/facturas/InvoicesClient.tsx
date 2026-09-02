@@ -269,11 +269,11 @@ export function InvoicesClient({ orders: initialOrders }: { orders: Order[] }) {
                     <td>
                       <div className="flex gap-1 flex-wrap">
                         <button onClick={() => setPreview(order)} title="Ver factura"
-                          className="p-1.5 rounded-lg hover:bg-gray-100">
+                          className="btn-icon">
                           <Eye size={14} style={{ color: 'var(--muted-foreground)' }} />
                         </button>
                         <button onClick={() => printPDF(order)} title="Imprimir / PDF"
-                          className="p-1.5 rounded-lg hover:bg-gray-100">
+                          className="btn-icon">
                           <Download size={14} style={{ color: 'var(--muted-foreground)' }} />
                         </button>
                         {customer?.email && (

@@ -605,7 +605,7 @@ function IconBtn({ icon: Icon, label, color, onClick, disabled = false }: {
 }) {
   return (
     <button onClick={onClick} title={label} disabled={disabled}
-      className="p-1.5 rounded-lg transition-colors hover:bg-gray-100 disabled:opacity-40">
+      className="btn-icon disabled:opacity-40">
       <Icon size={14} style={{ color }} />
     </button>
   )
@@ -660,7 +660,7 @@ function Modal({ title, subtitle, onClose, children }: {
               <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{subtitle}</p>
             )}
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 shrink-0">
+          <button onClick={onClose} className="btn-icon shrink-0">
             <X size={16} style={{ color: 'var(--muted-foreground)' }} />
           </button>
         </div>

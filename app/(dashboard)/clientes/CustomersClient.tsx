@@ -147,7 +147,7 @@ export function CustomersClient({ initialCustomers }: { initialCustomers: Custom
                   </span>
                 </td>
                 <td>
-                  <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+                  <button onClick={() => openEdit(c)} className="btn-icon">
                     <Pencil size={14} style={{ color: 'var(--muted-foreground)' }} />
                   </button>
                 </td>

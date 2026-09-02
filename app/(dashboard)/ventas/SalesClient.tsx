@@ -698,7 +698,7 @@ function OrderModal({
         {/* Header */}
         <div className="px-6 py-5 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
           <h2 className="text-lg font-semibold" style={{ color: 'var(--foreground)' }}>{title}</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+          <button onClick={onClose} className="btn-icon">
             <X size={16} style={{ color: 'var(--muted-foreground)' }} />
           </button>
         </div>

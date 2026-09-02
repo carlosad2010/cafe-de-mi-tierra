@@ -212,7 +212,7 @@ function MetodosPagoPanel({ initialItems }: { initialItems: MetodoPago[] }) {
                         </div>
                       ) : (
                         <button onClick={() => startEdit(item)}
-                          className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+                          className="btn-icon">
                           <Pencil size={14} style={{ color: 'var(--muted-foreground)' }} />
                         </button>
                       )}
@@ -426,7 +426,7 @@ function LookupPanel({
                       </div>
                     ) : (
                       <button onClick={() => startEdit(item)}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+                        className="btn-icon">
                         <Pencil size={14} style={{ color: 'var(--muted-foreground)' }} />
                       </button>
                     )}

@@ -213,7 +213,7 @@ export function CajasClient({
                   </div>
                 </div>
               </div>
-              <button onClick={() => openEdit(caja)} className="p-1.5 rounded-lg hover:bg-gray-100">
+              <button onClick={() => openEdit(caja)} className="btn-icon">
                 <Pencil size={14} style={{ color: 'var(--muted-foreground)' }} />
               </button>
             </div>
@@ -435,7 +435,7 @@ export function CajasClient({
                 </div>
                 <h2 className="text-base font-semibold" style={{ color: 'var(--foreground)' }}>Traslado de fondos</h2>
               </div>
-              <button onClick={() => setShowTraslado(false)} className="p-1.5 rounded-lg hover:bg-gray-100">
+              <button onClick={() => setShowTraslado(false)} className="btn-icon">
                 <X size={16} style={{ color: 'var(--muted-foreground)' }} />
               </button>
             </div>
