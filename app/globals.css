@@ -337,6 +337,9 @@ select.input-field { appearance: auto; }
 }
 .data-table td {
   padding: 0.75rem 1rem;
+  /* Dígitos de ancho fijo: los importes y cantidades cuadran en columna
+     en vez de bailar según cuántos "1" u "8" traiga cada fila. */
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Botón de acción en filas de tabla ────────────────────────── */
