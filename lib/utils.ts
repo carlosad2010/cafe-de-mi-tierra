@@ -47,6 +47,16 @@ export function getWhatsAppLink(phone: string, message: string): string {
   return `https://wa.me/${number}?text=${encodeURIComponent(message)}`
 }
 
+/**
+ * Cuenta para pagos por transferencia. Se muestra al final de la factura en
+ * PDF y del mensaje de WhatsApp; cámbiala aquí si el negocio cambia de banco.
+ */
+export const CUENTA_PAGO = {
+  banco: 'Bancolombia',
+  tipo: 'Ahorros',
+  numero: '33487159404',
+}
+
 export const PAYMENT_METHODS: Record<string, string> = {
   efectivo: 'Efectivo',
   transferencia: 'Transferencia',

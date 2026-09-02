@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Order } from '@/lib/types'
-import { formatCOP, formatDate, formatDateTime, getWhatsAppLink, PAYMENT_METHODS } from '@/lib/utils'
+import { formatCOP, formatDate, formatDateTime, getWhatsAppLink, PAYMENT_METHODS, CUENTA_PAGO } from '@/lib/utils'
 import { FileText, Send, MessageCircle, Eye, Download, RotateCcw, AlertTriangle, Package, Wallet, CheckCircle, ChevronDown, X } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
 import { useCanWrite } from '@/lib/perfil-context'
@@ -92,7 +92,7 @@ export function InvoicesClient({
     const items = ((order as any).items ?? [])
       .map((i: any) => `  • ${i.product_presentation} ${i.product_type} x${i.quantity} = ${formatCOP(i.subtotal)}`)
       .join('\n')
-    const message = `🌿 *Café de mi Tierra*\n*Pedido #${order.order_number}*\nFecha: ${formatDate(order.created_at)}\n\n*Productos:*\n${items}\n\n${order.discount > 0 ? `Subtotal: ${formatCOP(order.subtotal)}\nDescuento: -${formatCOP(order.discount)}\n` : ''}*Total: ${formatCOP(order.total)}*\nPago: ${PAYMENT_METHODS[order.payment_method] ?? order.payment_method}\n\n¡Gracias por tu compra! ☕`
+    const message = `🌿 *Café de mi Tierra*\n*Pedido #${order.order_number}*\nFecha: ${formatDate(order.created_at)}\n\n*Productos:*\n${items}\n\n${order.discount > 0 ? `Subtotal: ${formatCOP(order.subtotal)}\nDescuento: -${formatCOP(order.discount)}\n` : ''}*Total: ${formatCOP(order.total)}*\nPago: ${PAYMENT_METHODS[order.payment_method] ?? order.payment_method}\n\n💳 *Pagos por transferencia:*\n${CUENTA_PAGO.banco} ${CUENTA_PAGO.tipo}\nNo. ${CUENTA_PAGO.numero}\n\n¡Gracias por tu compra! ☕`
     window.open(getWhatsAppLink(customer.phone, message), '_blank')
   }
 
@@ -133,7 +133,11 @@ export function InvoicesClient({
       ${customerHTML}
       <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:24px;"><thead><tr style="border-bottom:2px solid #e8ccab;"><th style="padding:8px;text-align:left;color:#6b4423;font-weight:600;">Producto</th><th style="padding:8px;text-align:right;color:#6b4423;font-weight:600;">Precio</th><th style="padding:8px;text-align:right;color:#6b4423;font-weight:600;">Cant.</th><th style="padding:8px;text-align:right;color:#6b4423;font-weight:600;">Subtotal</th></tr></thead><tbody>${itemsHTML}</tbody></table>
       <div style="border-top:1px solid #e8ccab;padding-top:16px;">${discountHTML}<div style="display:flex;justify-content:space-between;font-weight:bold;font-size:16px;padding-top:4px;margin-bottom:8px;"><span style="color:#2c1810;">Total</span><span style="color:#8b5e3c;">${formatCOP(order.total)}</span></div><div style="display:flex;justify-content:space-between;font-size:14px;"><span style="color:#6b4423;">Método de pago</span><span style="color:#2c1810;">${PAYMENT_METHODS[order.payment_method] ?? order.payment_method}</span></div></div>
-      <p style="text-align:center;font-size:12px;color:#6b4423;margin-top:32px;">¡Gracias por tu compra! · Café de mi Tierra · Colombia</p>
+      <div style="background:#fdf8f3;border:1px solid #e8ccab;border-radius:12px;padding:14px 16px;margin-top:24px;text-align:center;">
+        <p style="font-size:11px;font-weight:600;color:#6b4423;margin:0 0 4px;letter-spacing:0.03em;">PAGOS POR TRANSFERENCIA</p>
+        <p style="font-size:14px;font-weight:600;color:#2c1810;margin:0;">${CUENTA_PAGO.banco} · ${CUENTA_PAGO.tipo} · No. ${CUENTA_PAGO.numero}</p>
+      </div>
+      <p style="text-align:center;font-size:12px;color:#6b4423;margin-top:16px;">¡Gracias por tu compra! · Café de mi Tierra · Colombia</p>
       </body></html>`
     const w = window.open('', '_blank', 'width=640,height=860')
     if (!w) { alert('Permite las ventanas emergentes para imprimir'); return }
