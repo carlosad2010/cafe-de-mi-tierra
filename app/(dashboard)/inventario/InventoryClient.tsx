@@ -111,29 +111,29 @@ export function InventoryClient({
         <div className="px-5 py-4 border-b font-semibold" style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>
           Stock actual
         </div>
-        <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <div className="table-wrap">
+        <table className="data-table">
           <thead>
-            <tr style={{ background: 'var(--secondary)' }}>
-              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Producto</th>
-              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Presentación</th>
-              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Tipo</th>
-              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Stock actual</th>
-              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Stock mínimo</th>
-              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Estado</th>
+            <tr>
+              <th>Producto</th>
+              <th className="hidden sm:table-cell">Presentación</th>
+              <th className="hidden sm:table-cell">Tipo</th>
+              <th>Stock actual</th>
+              <th className="hidden sm:table-cell">Stock mínimo</th>
+              <th>Estado</th>
             </tr>
           </thead>
-          <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
+          <tbody>
             {products.map(p => {
               const low = p.stock <= p.min_stock
               return (
-                <tr key={p.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium" style={{ color: 'var(--foreground)' }}>{p.name}</td>
-                  <td className="px-4 py-3 hidden sm:table-cell"><span className="px-2 py-0.5 rounded-full text-xs" style={{ background: 'var(--secondary)', color: 'var(--primary)' }}>{p.presentation?.nombre}</span></td>
-                  <td className="px-4 py-3 capitalize hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{p.tipo?.nombre}</td>
-                  <td className="px-4 py-3 font-bold" style={{ color: low ? '#dc2626' : '#16a34a' }}>{p.stock}</td>
-                  <td className="px-4 py-3 hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{p.min_stock}</td>
-                  <td className="px-4 py-3">
+                <tr key={p.id}>
+                  <td className="font-medium" style={{ color: 'var(--foreground)' }}>{p.name}</td>
+                  <td className="hidden sm:table-cell"><span className="px-2 py-0.5 rounded-full text-xs" style={{ background: 'var(--secondary)', color: 'var(--primary)' }}>{p.presentation?.nombre}</span></td>
+                  <td className="capitalize hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{p.tipo?.nombre}</td>
+                  <td className="font-bold" style={{ color: low ? '#dc2626' : '#16a34a' }}>{p.stock}</td>
+                  <td className="hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{p.min_stock}</td>
+                  <td>
                     <span className="text-xs px-2 py-0.5 rounded-full font-medium"
                       style={{ background: low ? '#fee2e2' : '#dcfce7', color: low ? '#dc2626' : '#16a34a' }}>
                       {low ? 'Stock bajo' : 'Normal'}
@@ -152,38 +152,38 @@ export function InventoryClient({
         <div className="px-5 py-4 border-b font-semibold" style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>
           Últimos movimientos
         </div>
-        <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <div className="table-wrap">
+        <table className="data-table">
           <thead>
-            <tr style={{ background: 'var(--secondary)' }}>
-              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Fecha</th>
-              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Producto</th>
-              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Tipo</th>
-              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Cantidad</th>
-              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Stock anterior</th>
-              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Stock nuevo</th>
-              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Razón</th>
+            <tr>
+              <th className="hidden sm:table-cell">Fecha</th>
+              <th>Producto</th>
+              <th>Tipo</th>
+              <th>Cantidad</th>
+              <th className="hidden sm:table-cell">Stock anterior</th>
+              <th className="hidden sm:table-cell">Stock nuevo</th>
+              <th className="hidden sm:table-cell">Razón</th>
             </tr>
           </thead>
-          <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
+          <tbody>
             {movements.map(m => {
               const mt = MOVEMENT_TYPES.find(t => t.value === m.type)
               return (
-                <tr key={m.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-xs hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{formatDateTime(m.created_at)}</td>
-                  <td className="px-4 py-3" style={{ color: 'var(--foreground)' }}>
+                <tr key={m.id}>
+                  <td className="text-xs hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{formatDateTime(m.created_at)}</td>
+                  <td style={{ color: 'var(--foreground)' }}>
                     {(m as any).product?.name ?? '—'}
                   </td>
-                  <td className="px-4 py-3">
+                  <td>
                     <span className="text-xs px-2 py-0.5 rounded-full font-medium capitalize"
                       style={{ background: mt?.color + '20', color: mt?.color }}>
                       {mt?.label}
                     </span>
                   </td>
-                  <td className="px-4 py-3 font-medium" style={{ color: mt?.color }}>{m.quantity > 0 ? '+' : ''}{m.quantity}</td>
-                  <td className="px-4 py-3 hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{m.previous_stock}</td>
-                  <td className="px-4 py-3 font-medium hidden sm:table-cell" style={{ color: 'var(--foreground)' }}>{m.new_stock}</td>
-                  <td className="px-4 py-3 hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{m.reason ?? '—'}</td>
+                  <td className="font-medium" style={{ color: mt?.color }}>{m.quantity > 0 ? '+' : ''}{m.quantity}</td>
+                  <td className="hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{m.previous_stock}</td>
+                  <td className="font-medium hidden sm:table-cell" style={{ color: 'var(--foreground)' }}>{m.new_stock}</td>
+                  <td className="hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{m.reason ?? '—'}</td>
                 </tr>
               )
             })}

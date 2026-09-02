@@ -256,10 +256,10 @@ export function CuentasCobrarClient({
 
       {/* ── Tabla ── */}
       <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="table-wrap">
+          <table className="data-table">
             <thead>
-              <tr style={{ background: 'var(--secondary)' }}>
+              <tr>
                 {['#', 'Cliente', 'Entrega', 'Días', 'Total', 'Estado', 'Acciones'].map((h, i) => (
                   <th key={h}
                     className={`px-4 py-3 text-left font-medium ${i === 3 || i === 2 ? 'hidden sm:table-cell' : ''}`}
@@ -267,32 +267,31 @@ export function CuentasCobrarClient({
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
+            <tbody>
               {visibles.map(c => {
                 const cfg   = ESTADO_CONFIG[c.estado]
                 const dias  = diasDesde(c.fecha_entrega)
                 const abierta = c.estado === 'pendiente'
                 return (
-                  <tr key={c.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-mono font-medium" style={{ color: 'var(--primary)' }}>#{c.numero}</td>
-                    <td className="px-4 py-3" style={{ color: 'var(--foreground)' }}>
+                  <tr key={c.id}>
+                    <td className="font-mono font-medium" style={{ color: 'var(--primary)' }}>#{c.numero}</td>
+                    <td style={{ color: 'var(--foreground)' }}>
                       {c.customer?.full_name ?? '—'}
                     </td>
-                    <td className="px-4 py-3 text-xs hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>
+                    <td className="text-xs hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>
                       {formatDate(c.fecha_entrega)}
                     </td>
-                    <td className="px-4 py-3 text-xs hidden sm:table-cell"
-                      style={{ color: abierta && dias > 60 ? '#dc2626' : 'var(--muted-foreground)', fontWeight: abierta && dias > 60 ? 600 : 400 }}>
+                    <td className="text-xs hidden sm:table-cell" style={{ color: abierta && dias > 60 ? '#dc2626' : 'var(--muted-foreground)', fontWeight: abierta && dias > 60 ? 600 : 400 }}>
                       {abierta ? `${dias}d` : '—'}
                     </td>
-                    <td className="px-4 py-3 font-semibold" style={{ color: 'var(--primary)' }}>{formatCOP(c.total)}</td>
-                    <td className="px-4 py-3">
+                    <td className="font-semibold" style={{ color: 'var(--primary)' }}>{formatCOP(c.total)}</td>
+                    <td>
                       <span className="text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap"
                         style={{ background: cfg.bg, color: cfg.color }}>
                         {cfg.label}{c.estado === 'pagada' && c.order?.order_number ? ` #${c.order.order_number}` : ''}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td>
                       <div className="flex gap-1 items-center">
                         <IconBtn icon={Eye} label="Ver detalle" color="#374151"
                           onClick={() => setVerCuenta(c)} />

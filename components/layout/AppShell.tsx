@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
-import { Menu, Coffee } from 'lucide-react'
+import { Menu } from 'lucide-react'
 import { Sidebar } from './Sidebar'
+import { BrandMark } from '@/components/ui/BrandMark'
 import { Profile } from '@/lib/types'
 
 export function AppShell({ profile, children }: { profile: Profile; children: React.ReactNode }) {
@@ -42,10 +43,8 @@ export function AppShell({ profile, children }: { profile: Profile; children: Re
             <Menu size={19} />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'var(--primary)' }}>
-              <Coffee size={13} color="#fdf8f3" />
-            </div>
-            <span className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Café de mi Tierra</span>
+            <BrandMark size={28} />
+            <span className="text-sm font-bold text-heading" style={{ color: 'var(--foreground)' }}>Café de mi Tierra</span>
           </div>
         </header>
 

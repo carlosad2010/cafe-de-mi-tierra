@@ -256,9 +256,9 @@ export function MovimientosCajaModal({
               </p>
             </div>
           ) : (
-            <table className="w-full text-sm">
+            <table className="data-table">
               <thead className="sticky top-0 z-10">
-                <tr style={{ background: 'var(--secondary)' }}>
+                <tr>
                   <Th>Fecha</Th>
                   <Th className="hidden sm:table-cell">Tipo</Th>
                   <Th>Concepto</Th>
@@ -269,16 +269,16 @@ export function MovimientosCajaModal({
                   <Th align="right" className="hidden sm:table-cell">Saldo</Th>
                 </tr>
               </thead>
-              <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
+              <tbody>
                 {visible.map(m => {
                   const cliente = m.orden?.customer?.full_name
                   const factura = m.orden?.order_number != null ? `Factura #${m.orden.order_number}` : null
                   return (
-                    <tr key={m.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ color: 'var(--muted-foreground)' }}>
+                    <tr key={m.id}>
+                      <td className="text-xs whitespace-nowrap" style={{ color: 'var(--muted-foreground)' }}>
                         {formatDateTime(m.fecha ?? m.created_at)}
                       </td>
-                      <td className="px-4 py-3 hidden sm:table-cell">
+                      <td className="hidden sm:table-cell">
                         <span className="flex items-center gap-1 text-xs font-medium w-fit px-2 py-0.5 rounded-full whitespace-nowrap"
                           style={{
                             background: m.tipo === 'ingreso' ? '#d1fae5' : '#fee2e2',
@@ -288,7 +288,7 @@ export function MovimientosCajaModal({
                           {m.tipo === 'ingreso' ? 'Ingreso' : 'Egreso'}
                         </span>
                       </td>
-                      <td className="px-4 py-3" style={{ color: 'var(--foreground)' }}>
+                      <td style={{ color: 'var(--foreground)' }}>
                         {m.concepto}
                         {/* En móvil el cliente no tiene columna propia */}
                         {cliente && (
@@ -297,21 +297,19 @@ export function MovimientosCajaModal({
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-xs hidden md:table-cell" style={{ color: 'var(--foreground)' }}>
+                      <td className="text-xs hidden md:table-cell" style={{ color: 'var(--foreground)' }}>
                         {cliente ?? '—'}
                       </td>
-                      <td className="px-4 py-3 text-xs hidden lg:table-cell whitespace-nowrap" style={{ color: 'var(--muted-foreground)' }}>
+                      <td className="text-xs hidden lg:table-cell whitespace-nowrap" style={{ color: 'var(--muted-foreground)' }}>
                         {factura ?? m.referencia ?? '—'}
                       </td>
-                      <td className="px-4 py-3 text-xs hidden lg:table-cell" style={{ color: 'var(--muted-foreground)' }}>
+                      <td className="text-xs hidden lg:table-cell" style={{ color: 'var(--muted-foreground)' }}>
                         {m.creator?.full_name ?? '—'}
                       </td>
-                      <td className="px-4 py-3 font-semibold text-right whitespace-nowrap"
-                        style={{ color: m.tipo === 'ingreso' ? '#16a34a' : '#dc2626' }}>
+                      <td className="font-semibold text-right whitespace-nowrap" style={{ color: m.tipo === 'ingreso' ? '#16a34a' : '#dc2626' }}>
                         {m.tipo === 'ingreso' ? '+' : '-'}{formatCOP(m.monto)}
                       </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap hidden sm:table-cell font-medium"
-                        style={{ color: m.saldo >= 0 ? 'var(--foreground)' : '#dc2626' }}>
+                      <td className="text-right whitespace-nowrap hidden sm:table-cell font-medium" style={{ color: m.saldo >= 0 ? 'var(--foreground)' : '#dc2626' }}>
                         {formatCOP(m.saldo)}
                       </td>
                     </tr>
@@ -321,24 +319,23 @@ export function MovimientosCajaModal({
                 {/* Ancla cronológica: de dónde arrancó el saldo (va al final de todo) */}
                 {sinFiltros && enUltima && (
                   <tr style={{ background: 'var(--background)' }}>
-                    <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                    <td className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
                       {formatDateTime(caja.created_at)}
                     </td>
-                    <td className="px-4 py-3 hidden sm:table-cell">
+                    <td className="hidden sm:table-cell">
                       <span className="flex items-center gap-1 text-xs font-medium w-fit px-2 py-0.5 rounded-full whitespace-nowrap"
                         style={{ background: 'var(--secondary)', color: 'var(--muted-foreground)' }}>
                         <Flag size={11} /> Apertura
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs italic" style={{ color: 'var(--muted-foreground)' }}>
+                    <td className="text-xs italic" style={{ color: 'var(--muted-foreground)' }}>
                       Saldo inicial de la caja
                     </td>
-                    <td className="px-4 py-3 hidden md:table-cell" />
-                    <td className="px-4 py-3 hidden lg:table-cell" />
-                    <td className="px-4 py-3 hidden lg:table-cell" />
-                    <td className="px-4 py-3 text-right" />
-                    <td className="px-4 py-3 text-right whitespace-nowrap hidden sm:table-cell font-medium"
-                      style={{ color: 'var(--muted-foreground)' }}>
+                    <td className="hidden md:table-cell" />
+                    <td className="hidden lg:table-cell" />
+                    <td className="hidden lg:table-cell" />
+                    <td className="text-right" />
+                    <td className="text-right whitespace-nowrap hidden sm:table-cell font-medium" style={{ color: 'var(--muted-foreground)' }}>
                       {formatCOP(caja.saldo_inicial)}
                     </td>
                   </tr>
@@ -461,8 +458,8 @@ function Th({
   align?: 'left' | 'right'
 }) {
   return (
-    <th className={`px-4 py-3 font-medium whitespace-nowrap ${align === 'right' ? 'text-right' : 'text-left'} ${className}`}
-      style={{ color: 'var(--muted-foreground)', background: 'var(--secondary)' }}>
+    <th className={`${align === 'right' ? 'text-right' : ''} ${className}`}
+      style={{ background: 'var(--secondary)' }}>
       {children}
     </th>
   )

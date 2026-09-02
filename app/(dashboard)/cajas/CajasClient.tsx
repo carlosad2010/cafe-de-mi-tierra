@@ -355,22 +355,22 @@ export function CajasClient({
         </div>
 
         <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
-          <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <div className="table-wrap">
+          <table className="data-table">
             <thead>
-              <tr style={{ background: 'var(--secondary)' }}>
-                <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Fecha</th>
-                <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Tipo</th>
-                <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Concepto</th>
-                <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Caja</th>
-                <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Monto</th>
+              <tr>
+                <th className="hidden sm:table-cell">Fecha</th>
+                <th>Tipo</th>
+                <th>Concepto</th>
+                <th className="hidden sm:table-cell">Caja</th>
+                <th>Monto</th>
               </tr>
             </thead>
-            <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
+            <tbody>
               {movimientosFiltrados.map(m => (
-                <tr key={m.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-xs hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{formatDateTime(m.created_at)}</td>
-                  <td className="px-4 py-3">
+                <tr key={m.id}>
+                  <td className="text-xs hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{formatDateTime(m.created_at)}</td>
+                  <td>
                     <span className="flex items-center gap-1 text-xs font-medium w-fit px-2 py-0.5 rounded-full"
                       style={{
                         background: m.tipo === 'ingreso' ? '#d1fae5' : '#fee2e2',
@@ -380,7 +380,7 @@ export function CajasClient({
                       {m.tipo === 'ingreso' ? 'Ingreso' : 'Egreso'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 relative group" style={{ color: 'var(--foreground)' }}>
+                  <td className="relative group" style={{ color: 'var(--foreground)' }}>
                     <span className="cursor-default">{m.concepto}</span>
                     {m.orden?.customer?.full_name && (
                       <div className="absolute left-4 bottom-full mb-1.5 z-20 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150">
@@ -393,9 +393,8 @@ export function CajasClient({
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{m.caja?.nombre ?? '—'}</td>
-                  <td className="px-4 py-3 font-semibold"
-                    style={{ color: m.tipo === 'ingreso' ? '#16a34a' : '#dc2626' }}>
+                  <td className="text-xs hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{m.caja?.nombre ?? '—'}</td>
+                  <td className="font-semibold" style={{ color: m.tipo === 'ingreso' ? '#16a34a' : '#dc2626' }}>
                     {m.tipo === 'ingreso' ? '+' : '-'}{formatCOP(m.monto)}
                   </td>
                 </tr>

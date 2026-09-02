@@ -146,8 +146,7 @@ function MarginBadge({ value }: { value: number }) {
 function CsvButton({ onClick }: { onClick: () => void }) {
   return (
     <button onClick={onClick}
-      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors hover:bg-gray-50"
-      style={{ borderColor: '#E7E5E4', color: '#78716C' }}>
+      className="btn btn-secondary btn-sm">
       <Download size={13} /> CSV
     </button>
   )

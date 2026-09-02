@@ -140,23 +140,23 @@ function MetodosPagoPanel({ initialItems }: { initialItems: MetodoPago[] }) {
       </p>
 
       <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="table-wrap">
+          <table className="data-table">
             <thead>
-              <tr style={{ background: 'var(--secondary)' }}>
-                <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Nombre</th>
-                <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Tipo</th>
-                <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Orden</th>
-                <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Estado</th>
-                <th className="px-4 py-3" />
+              <tr>
+                <th>Nombre</th>
+                <th>Tipo</th>
+                <th className="hidden sm:table-cell">Orden</th>
+                <th>Estado</th>
+                <th />
               </tr>
             </thead>
-            <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
+            <tbody>
               {items.map(item => {
                 const isEd = editing === item.id
                 return (
-                  <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-medium" style={{ color: 'var(--foreground)' }}>
+                  <tr key={item.id}>
+                    <td className="font-medium" style={{ color: 'var(--foreground)' }}>
                       {isEd ? (
                         <input
                           value={editNombre} onChange={e => setEditNombre(e.target.value)}
@@ -167,7 +167,7 @@ function MetodosPagoPanel({ initialItems }: { initialItems: MetodoPago[] }) {
                         />
                       ) : item.nombre}
                     </td>
-                    <td className="px-4 py-3">
+                    <td>
                       {isEd
                         ? tipoSelect(editTipo, setEditTipo, 'w-28')
                         : (
@@ -178,7 +178,7 @@ function MetodosPagoPanel({ initialItems }: { initialItems: MetodoPago[] }) {
                         )
                       }
                     </td>
-                    <td className="px-4 py-3 hidden sm:table-cell">
+                    <td className="hidden sm:table-cell">
                       {isEd ? (
                         <input type="number" value={editOrden}
                           onChange={e => setEditOrden(Number(e.target.value))}
@@ -189,7 +189,7 @@ function MetodosPagoPanel({ initialItems }: { initialItems: MetodoPago[] }) {
                         <span style={{ color: 'var(--muted-foreground)' }}>{item.orden}</span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td>
                       <button
                         onClick={() => toggleActive(item)}
                         className="text-xs px-2 py-0.5 rounded-full font-medium transition-colors"
@@ -198,7 +198,7 @@ function MetodosPagoPanel({ initialItems }: { initialItems: MetodoPago[] }) {
                         {item.activo ? 'Activo' : 'Inactivo'}
                       </button>
                     </td>
-                    <td className="px-4 py-3">
+                    <td>
                       {isEd ? (
                         <div className="flex gap-1">
                           <button onClick={() => saveEdit(item.id)} disabled={busy}
@@ -224,7 +224,7 @@ function MetodosPagoPanel({ initialItems }: { initialItems: MetodoPago[] }) {
               {/* Agregar nuevo */}
               {adding && (
                 <tr style={{ background: '#fafafa' }}>
-                  <td className="px-4 py-3">
+                  <td>
                     <input
                       value={newNombre} onChange={e => setNewNombre(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && handleAdd()}
@@ -234,10 +234,10 @@ function MetodosPagoPanel({ initialItems }: { initialItems: MetodoPago[] }) {
                       autoFocus
                     />
                   </td>
-                  <td className="px-4 py-3">
+                  <td>
                     {tipoSelect(newTipo, setNewTipo, 'w-28')}
                   </td>
-                  <td className="px-4 py-3 hidden sm:table-cell">
+                  <td className="hidden sm:table-cell">
                     <input type="number" value={newOrden}
                       onChange={e => setNewOrden(Number(e.target.value))}
                       className="w-16 border rounded-md px-2 py-1 text-sm text-center outline-none"
@@ -245,7 +245,7 @@ function MetodosPagoPanel({ initialItems }: { initialItems: MetodoPago[] }) {
                     />
                   </td>
                   <td />
-                  <td className="px-4 py-3">
+                  <td>
                     <div className="flex gap-1">
                       <button onClick={handleAdd} disabled={busy || !newNombre.trim()}
                         className="p-1.5 rounded-lg hover:bg-green-50 disabled:opacity-40 transition-colors" title="Agregar">
@@ -360,23 +360,23 @@ function LookupPanel({
       <p className="text-sm mb-5" style={{ color: 'var(--muted-foreground)' }}>{description}</p>
 
       <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
-        <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <div className="table-wrap">
+        <table className="data-table">
           <thead>
-            <tr style={{ background: 'var(--secondary)' }}>
-              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Orden</th>
-              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Nombre</th>
-              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Estado</th>
-              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}></th>
+            <tr>
+              <th className="hidden sm:table-cell">Orden</th>
+              <th>Nombre</th>
+              <th>Estado</th>
+              <th></th>
             </tr>
           </thead>
-          <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
+          <tbody>
             {items.map(item => {
               const isEd = editing === item.id
               const active = isActive(item)
               return (
-                <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 w-24 hidden sm:table-cell">
+                <tr key={item.id}>
+                  <td className="w-24 hidden sm:table-cell">
                     {isEd ? (
                       <input
                         type="number" value={editOrden}
@@ -388,7 +388,7 @@ function LookupPanel({
                       <span className="text-sm" style={{ color: 'var(--muted-foreground)' }}>{item.orden}</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 font-medium" style={{ color: 'var(--foreground)' }}>
+                  <td className="font-medium" style={{ color: 'var(--foreground)' }}>
                     {isEd ? (
                       <input
                         value={editNombre} onChange={e => setEditNombre(e.target.value)}
@@ -401,7 +401,7 @@ function LookupPanel({
                       <span className="capitalize">{item.nombre}</span>
                     )}
                   </td>
-                  <td className="px-4 py-3">
+                  <td>
                     <button
                       onClick={() => toggleActive(item)}
                       className="text-xs px-2 py-0.5 rounded-full font-medium transition-colors"
@@ -410,7 +410,7 @@ function LookupPanel({
                       {active ? 'Activo' : 'Inactivo'}
                     </button>
                   </td>
-                  <td className="px-4 py-3">
+                  <td>
                     {isEd ? (
                       <div className="flex gap-1">
                         <button onClick={() => saveEdit(item.id)} disabled={busy}
@@ -438,7 +438,7 @@ function LookupPanel({
             {/* Fila de agregar nuevo */}
             {adding && (
               <tr style={{ background: '#fafafa' }}>
-                <td className="px-4 py-3 w-24 hidden sm:table-cell">
+                <td className="w-24 hidden sm:table-cell">
                   <input
                     type="number" value={newOrden}
                     onChange={e => setNewOrden(Number(e.target.value))}
@@ -446,7 +446,7 @@ function LookupPanel({
                     style={{ borderColor: 'var(--border)' }}
                   />
                 </td>
-                <td className="px-4 py-3">
+                <td>
                   <input
                     value={newNombre} onChange={e => setNewNombre(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleAdd()}
@@ -457,7 +457,7 @@ function LookupPanel({
                   />
                 </td>
                 <td />
-                <td className="px-4 py-3">
+                <td>
                   <div className="flex gap-1">
                     <button onClick={handleAdd} disabled={busy || !newNombre.trim()}
                       className="p-1.5 rounded-lg hover:bg-green-50 disabled:opacity-40 transition-colors"

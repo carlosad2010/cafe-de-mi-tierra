@@ -119,55 +119,55 @@ export function ProductsClient({ initialProducts, presentations, tiposProducto }
 
       {/* Table */}
       <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
-        <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <div className="table-wrap">
+        <table className="data-table">
           <thead>
-            <tr style={{ background: 'var(--secondary)' }}>
-              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Producto</th>
-              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Presentación</th>
-              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Tipo</th>
-              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Costo</th>
-              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Precio 1</th>
-              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Precio 2</th>
-              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Margen</th>
-              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Stock</th>
-              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Estado</th>
-              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}></th>
+            <tr>
+              <th>Producto</th>
+              <th className="hidden sm:table-cell">Presentación</th>
+              <th className="hidden sm:table-cell">Tipo</th>
+              <th className="hidden sm:table-cell">Costo</th>
+              <th>Precio 1</th>
+              <th className="hidden sm:table-cell">Precio 2</th>
+              <th className="hidden sm:table-cell">Margen</th>
+              <th>Stock</th>
+              <th>Estado</th>
+              <th></th>
             </tr>
           </thead>
-          <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
+          <tbody>
             {products.map(p => (
-              <tr key={p.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-4 py-3 font-medium" style={{ color: 'var(--foreground)' }}>{p.name}</td>
-                <td className="px-4 py-3 hidden sm:table-cell">
+              <tr key={p.id}>
+                <td className="font-medium" style={{ color: 'var(--foreground)' }}>{p.name}</td>
+                <td className="hidden sm:table-cell">
                   <span className="px-2 py-0.5 rounded-full text-xs font-medium"
                     style={{ background: 'var(--secondary)', color: 'var(--primary)' }}>
                     {p.presentation?.nombre}
                   </span>
                 </td>
-                <td className="px-4 py-3 capitalize hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{p.tipo?.nombre}</td>
-                <td className="px-4 py-3 hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{formatCOP(p.cost_price)}</td>
-                <td className="px-4 py-3 font-medium" style={{ color: 'var(--foreground)' }}>{formatCOP(p.precio1)}</td>
-                <td className="px-4 py-3 hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{formatCOP(p.precio2)}</td>
-                <td className="px-4 py-3 hidden sm:table-cell">
+                <td className="capitalize hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{p.tipo?.nombre}</td>
+                <td className="hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{formatCOP(p.cost_price)}</td>
+                <td className="font-medium" style={{ color: 'var(--foreground)' }}>{formatCOP(p.precio1)}</td>
+                <td className="hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{formatCOP(p.precio2)}</td>
+                <td className="hidden sm:table-cell">
                   <div className="flex items-center gap-1">
                     <TrendingUp size={13} style={{ color: '#16a34a' }} />
                     <span style={{ color: '#16a34a' }}>{calcMargin(p.precio1, p.cost_price).toFixed(0)}%</span>
                   </div>
                 </td>
-                <td className="px-4 py-3">
+                <td>
                   <span style={{ color: p.stock <= p.min_stock ? '#dc2626' : 'var(--foreground)', fontWeight: p.stock <= p.min_stock ? 600 : 400 }}>
                     {p.stock}
                   </span>
                 </td>
-                <td className="px-4 py-3">
+                <td>
                   <button onClick={() => toggleActive(p)}
                     className="text-xs px-2 py-0.5 rounded-full font-medium"
                     style={{ background: p.active ? '#dcfce7' : '#fee2e2', color: p.active ? '#16a34a' : '#dc2626' }}>
                     {p.active ? 'Activo' : 'Inactivo'}
                   </button>
                 </td>
-                <td className="px-4 py-3">
+                <td>
                   <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
                     <Pencil size={14} style={{ color: 'var(--muted-foreground)' }} />
                   </button>

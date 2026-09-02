@@ -406,39 +406,39 @@ export function SalesClient({
 
       {/* Orders table */}
       <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="table-wrap">
+          <table className="data-table">
             <thead>
-              <tr style={{ background: 'var(--secondary)' }}>
-                <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>#</th>
-                <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Cliente</th>
-                <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Vendedor</th>
-                <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Método</th>
-                <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Total</th>
-                <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Estado</th>
-                <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Fecha</th>
-                <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Acciones</th>
+              <tr>
+                <th>#</th>
+                <th>Cliente</th>
+                <th className="hidden sm:table-cell">Vendedor</th>
+                <th className="hidden sm:table-cell">Método</th>
+                <th>Total</th>
+                <th>Estado</th>
+                <th className="hidden sm:table-cell">Fecha</th>
+                <th>Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
+            <tbody>
               {filtered.map(order => {
                 const st = ORDER_STATUS[order.status]
                 const isPending = order.status === 'pendiente'
                 const isBusy    = busyOrders.includes(order.id)
                 return (
-                  <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-mono font-medium" style={{ color: 'var(--primary)' }}>#{order.order_number}</td>
-                    <td className="px-4 py-3" style={{ color: 'var(--foreground)' }}>{(order as any).customer?.full_name ?? 'Sin cliente'}</td>
-                    <td className="px-4 py-3 hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{(order as any).seller?.full_name ?? '—'}</td>
-                    <td className="px-4 py-3 hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>
+                  <tr key={order.id}>
+                    <td className="font-mono font-medium" style={{ color: 'var(--primary)' }}>#{order.order_number}</td>
+                    <td style={{ color: 'var(--foreground)' }}>{(order as any).customer?.full_name ?? 'Sin cliente'}</td>
+                    <td className="hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{(order as any).seller?.full_name ?? '—'}</td>
+                    <td className="hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>
                       {PAYMENT_METHODS[order.payment_method] ?? order.payment_method}
                     </td>
-                    <td className="px-4 py-3 font-semibold" style={{ color: 'var(--primary)' }}>{formatCOP(order.total)}</td>
-                    <td className="px-4 py-3">
+                    <td className="font-semibold" style={{ color: 'var(--primary)' }}>{formatCOP(order.total)}</td>
+                    <td>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${st?.color}`}>{st?.label}</span>
                     </td>
-                    <td className="px-4 py-3 text-xs hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{formatDateTime(order.created_at)}</td>
-                    <td className="px-4 py-3">
+                    <td className="text-xs hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{formatDateTime(order.created_at)}</td>
+                    <td>
                       <div className="flex gap-0.5 items-center">
                         {/* Ver detalle */}
                         <ActionBtn

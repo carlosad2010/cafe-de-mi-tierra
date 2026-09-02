@@ -153,8 +153,7 @@ export function InvoicesClient({ orders: initialOrders }: { orders: Order[] }) {
         {hasFilter && (
           <button
             onClick={() => { setFilterCliente(''); setFilterMetodo('') }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors hover:bg-gray-50"
-            style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}>
+            className="btn btn-secondary btn-sm">
             <X size={12} /> Limpiar filtros
           </button>
         )}
@@ -170,15 +169,15 @@ export function InvoicesClient({ orders: initialOrders }: { orders: Order[] }) {
       )}
 
       <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="table-wrap">
+          <table className="data-table">
             <thead>
               <tr style={{ background: 'var(--secondary)', borderBottom: '1px solid var(--border)' }}>
                 {/* # */}
-                <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)', whiteSpace: 'nowrap' }}>#</th>
+                <th style={{ color: 'var(--muted-foreground)', whiteSpace: 'nowrap' }}>#</th>
 
                 {/* Cliente — con búsqueda */}
-                <th className="px-4 py-2 text-left" style={{ minWidth: '180px' }}>
+                <th style={{ minWidth: '180px' }}>
                   <div className="text-xs font-medium mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Cliente</div>
                   <div className="relative">
                     <input
@@ -205,13 +204,13 @@ export function InvoicesClient({ orders: initialOrders }: { orders: Order[] }) {
                 </th>
 
                 {/* Fecha */}
-                <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)', whiteSpace: 'nowrap' }}>Fecha</th>
+                <th className="hidden sm:table-cell" style={{ color: 'var(--muted-foreground)', whiteSpace: 'nowrap' }}>Fecha</th>
 
                 {/* Total */}
-                <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)', whiteSpace: 'nowrap' }}>Total</th>
+                <th style={{ color: 'var(--muted-foreground)', whiteSpace: 'nowrap' }}>Total</th>
 
                 {/* Método — con selector */}
-                <th className="px-4 py-2 text-left hidden sm:table-cell" style={{ minWidth: '150px' }}>
+                <th className="hidden sm:table-cell" style={{ minWidth: '150px' }}>
                   <div className="text-xs font-medium mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Método</div>
                   <div className="relative">
                     <select
@@ -241,33 +240,33 @@ export function InvoicesClient({ orders: initialOrders }: { orders: Order[] }) {
                 </th>
 
                 {/* Email */}
-                <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)', whiteSpace: 'nowrap' }}>Email</th>
+                <th className="hidden sm:table-cell" style={{ color: 'var(--muted-foreground)', whiteSpace: 'nowrap' }}>Email</th>
 
                 {/* Acciones */}
-                <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)', whiteSpace: 'nowrap' }}>Acciones</th>
+                <th style={{ color: 'var(--muted-foreground)', whiteSpace: 'nowrap' }}>Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
+            <tbody>
               {filtered.map(order => {
                 const customer = (order as any).customer
                 return (
-                  <tr key={order.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-mono font-medium" style={{ color: 'var(--primary)' }}>#{order.order_number}</td>
-                    <td className="px-4 py-3" style={{ color: 'var(--foreground)' }}>
+                  <tr key={order.id}>
+                    <td className="font-mono font-medium" style={{ color: 'var(--primary)' }}>#{order.order_number}</td>
+                    <td style={{ color: 'var(--foreground)' }}>
                       <div>{customer?.full_name ?? 'Sin cliente'}</div>
                       {customer?.email && <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{customer.email}</div>}
                     </td>
-                    <td className="px-4 py-3 text-xs hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{formatDateTime(order.created_at)}</td>
-                    <td className="px-4 py-3 font-semibold" style={{ color: 'var(--primary)' }}>{formatCOP(order.total)}</td>
-                    <td className="px-4 py-3 hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>
+                    <td className="text-xs hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{formatDateTime(order.created_at)}</td>
+                    <td className="font-semibold" style={{ color: 'var(--primary)' }}>{formatCOP(order.total)}</td>
+                    <td className="hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>
                       {PAYMENT_METHODS[order.payment_method] ?? order.payment_method}
                     </td>
-                    <td className="px-4 py-3 hidden sm:table-cell">
+                    <td className="hidden sm:table-cell">
                       {order.email_sent
                         ? <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: '#dcfce7', color: '#16a34a' }}>Enviado</span>
                         : <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>—</span>}
                     </td>
-                    <td className="px-4 py-3">
+                    <td>
                       <div className="flex gap-1 flex-wrap">
                         <button onClick={() => setPreview(order)} title="Ver factura"
                           className="p-1.5 rounded-lg hover:bg-gray-100">

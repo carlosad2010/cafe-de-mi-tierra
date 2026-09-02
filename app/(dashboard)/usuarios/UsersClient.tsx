@@ -58,38 +58,38 @@ export function UsersClient({ initialProfiles }: { initialProfiles: Profile[] })
       </div>
 
       <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
-        <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <div className="table-wrap">
+        <table className="data-table">
           <thead>
-            <tr style={{ background: 'var(--secondary)' }}>
-              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Nombre</th>
-              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Correo</th>
-              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Rol</th>
-              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Estado</th>
-              <th className="px-4 py-3 text-left font-medium hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Creado</th>
-              <th className="px-4 py-3 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>Acción</th>
+            <tr>
+              <th>Nombre</th>
+              <th>Correo</th>
+              <th>Rol</th>
+              <th>Estado</th>
+              <th className="hidden sm:table-cell">Creado</th>
+              <th>Acción</th>
             </tr>
           </thead>
-          <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
+          <tbody>
             {profiles.map(p => (
-              <tr key={p.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 font-medium" style={{ color: 'var(--foreground)' }}>{p.full_name}</td>
-                <td className="px-4 py-3" style={{ color: 'var(--muted-foreground)' }}>{p.email}</td>
-                <td className="px-4 py-3">
+              <tr key={p.id}>
+                <td className="font-medium" style={{ color: 'var(--foreground)' }}>{p.full_name}</td>
+                <td style={{ color: 'var(--muted-foreground)' }}>{p.email}</td>
+                <td>
                   <span className="text-xs px-2 py-0.5 rounded-full font-medium capitalize"
                     style={{ background: p.role === 'admin' ? '#fef3c7' : 'var(--secondary)', color: p.role === 'admin' ? '#92400e' : 'var(--muted-foreground)' }}>
                     {p.role === 'admin' ? 'Administrador' : 'Vendedor'}
                   </span>
                 </td>
-                <td className="px-4 py-3">
+                <td>
                   <button onClick={() => toggleActive(p)}
                     className="text-xs px-2 py-0.5 rounded-full font-medium"
                     style={{ background: p.active ? '#dcfce7' : '#fee2e2', color: p.active ? '#16a34a' : '#dc2626' }}>
                     {p.active ? 'Activo' : 'Inactivo'}
                   </button>
                 </td>
-                <td className="px-4 py-3 text-xs hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{formatDate(p.created_at)}</td>
-                <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                <td className="text-xs hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>{formatDate(p.created_at)}</td>
+                <td className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
                   {p.active ? 'Desactivar' : 'Activar'}
                 </td>
               </tr>
