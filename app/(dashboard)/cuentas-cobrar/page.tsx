@@ -29,7 +29,8 @@ export default async function CuentasCobrarPage({
 }) {
   const sp     = await searchParams
   const page   = Math.max(1, Number(sp.page) || 1)
-  const estado = sp.estado && ESTADOS.includes(sp.estado as any) ? sp.estado : 'todas'
+  // Pantalla de cobros: sin filtro explícito se entra por lo pendiente.
+  const estado = sp.estado && [...ESTADOS, 'todas'].includes(sp.estado) ? sp.estado : 'pendiente'
   const q      = (sp.q ?? '').trim()
 
   const supabase = await createClient()

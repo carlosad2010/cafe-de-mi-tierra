@@ -238,7 +238,8 @@ export function CuentasCobrarClient({
 
   // ── Derivados ───────────────────────────────────────────────────────────────
 
-  const hasFilters = !!query || estado !== 'todas'
+  // 'pendiente' es la vista por defecto: no cuenta como filtro explícito.
+  const hasFilters = !!query || estado !== 'pendiente'
 
   /** Reescribe la URL con los filtros activos; el servidor devuelve la página. */
   function navigate(next: { estado?: string; q?: string; page?: number }) {
@@ -246,7 +247,7 @@ export function CuentasCobrarClient({
     const nextEst  = next.estado ?? estado
     const nextQ    = (next.q ?? query).trim()
     const nextPage = next.page ?? 1
-    if (nextEst !== 'todas') params.set('estado', nextEst)
+    if (nextEst !== 'pendiente') params.set('estado', nextEst)
     if (nextQ)               params.set('q', nextQ)
     if (nextPage > 1)        params.set('page', String(nextPage))
     const qs = params.toString()
