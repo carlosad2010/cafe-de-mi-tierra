@@ -569,6 +569,20 @@ select.input-field { appearance: auto; }
   box-shadow: 0 2px 8px rgba(124,92,66,0.25);
 }
 
+/* ── Barra de stock ───────────────────────────────────────────── */
+.stock-bar-track {
+  flex: 1;
+  height: 0.375rem;
+  border-radius: 9999px;
+  background: var(--secondary);
+  overflow: hidden;
+}
+.stock-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
 /* ── KPI stat card ────────────────────────────────────────────── */
 .stat-card {
   position: relative;

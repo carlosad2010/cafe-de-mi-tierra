@@ -8,6 +8,7 @@ import { Plus, Pencil, Package, TrendingUp } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
 import { SearchField } from '@/components/ui/SearchField'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { StockBar } from '@/components/ui/StockBar'
 import { useCanWrite } from '@/lib/perfil-context'
 
 type ProductForm = {
@@ -180,9 +181,7 @@ export function ProductsClient({ initialProducts, presentations, tiposProducto }
                   </div>
                 </td>
                 <td>
-                  <span style={{ color: p.stock <= p.min_stock ? '#dc2626' : 'var(--foreground)', fontWeight: p.stock <= p.min_stock ? 600 : 400 }}>
-                    {p.stock}
-                  </span>
+                  <StockBar stock={p.stock} minStock={p.min_stock} />
                 </td>
                 <td>
                   <button onClick={() => toggleActive(p)}
