@@ -1,6 +1,7 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Caja, Compra, TipoGasto } from '@/lib/types'
 import { formatCOP, formatDate } from '@/lib/utils'
@@ -8,6 +9,8 @@ import { Plus, ShoppingBag, Pencil, Trash2, X, Banknote, Wallet, Tag, Receipt } 
 import { useEscKey } from '@/lib/hooks/useEscKey'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useCanWrite } from '@/lib/perfil-context'
+import { SearchField } from '@/components/ui/SearchField'
+import { Pagination } from '@/components/ui/Pagination'
 
 type CompraFull = Compra & {
   caja?: Pick<Caja, 'nombre' | 'tipo'>
@@ -32,19 +35,60 @@ const TIPO_CONFIG: Record<TipoGasto, { label: string; color: string; bg: string 
 export function ComprasClient({
   compras: initialCompras,
   cajas,
+  page, pageSize, total, tipo, query, conteos, resumen,
 }: {
   compras: CompraFull[]
   cajas: Pick<Caja, 'id' | 'nombre' | 'tipo'>[]
+  page: number
+  pageSize: number
+  total: number
+  tipo: string
+  query: string
+  conteos: Record<string, number>
+  resumen: { compras: number; gastos: number; efectivo: number; bancaria: number; registros: number }
 }) {
   const canWrite = useCanWrite()
+  const router   = useRouter()
+  const pathname = usePathname()
+  const [navigating, startNavigation] = useTransition()
+
+  // El servidor entrega la pagina ya filtrada; el estado local solo absorbe
+  // las altas, ediciones y borrados.
   const [compras, setCompras] = useState(initialCompras)
+  const [seed, setSeed]       = useState(initialCompras)
+  if (seed !== initialCompras) {
+    setSeed(initialCompras)
+    setCompras(initialCompras)
+  }
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<CompraFull | null>(null)
   const [form, setForm] = useState({ ...EMPTY_FORM, caja_id: cajas[0]?.id ?? '' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [deleting, setDeleting] = useState<string | null>(null)
-  const [filterTipo, setFilterTipo] = useState<'todos' | TipoGasto>('todos')
+  // Texto del buscador: local para no perder el foco entre navegaciones
+  const [search, setSearch] = useState(query)
+
+  /** Reescribe la URL con los filtros activos; el servidor devuelve la pagina. */
+  function navigate(next: { tipo?: string; q?: string; page?: number }) {
+    const params   = new URLSearchParams()
+    const nextTipo = next.tipo ?? tipo
+    const nextQ    = (next.q ?? query).trim()
+    const nextPage = next.page ?? 1
+    if (nextTipo !== 'todos') params.set('tipo', nextTipo)
+    if (nextQ)                params.set('q', nextQ)
+    if (nextPage > 1)         params.set('page', String(nextPage))
+    const qs = params.toString()
+    startNavigation(() => router.push(qs ? `${pathname}?${qs}` : pathname))
+  }
+
+  // Busqueda con retardo: evita una consulta por cada tecla
+  useEffect(() => {
+    if (search.trim() === query) return
+    const timer = setTimeout(() => navigate({ q: search, page: 1 }), 350)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search])
 
   // Candado síncrono: `saving` no basta, setState es asíncrono y dos clics
   // en el mismo tick lo atraviesan antes del re-render que deshabilita el botón.
@@ -185,20 +229,18 @@ export function ComprasClient({
     setDeleting(null)
   }
 
-  const filtered = filterTipo === 'todos' ? compras : compras.filter(c => c.tipo === filterTipo)
 
-  const totalCompras  = compras.filter(c => c.tipo === 'compra').reduce((s, c) => s + c.monto, 0)
-  const totalGastos   = compras.filter(c => c.tipo === 'gasto').reduce((s, c) => s + c.monto, 0)
-  const totalEfectivo = compras.filter(c => c.caja?.tipo === 'efectivo').reduce((s, c) => s + c.monto, 0)
-  const totalBancaria = compras.filter(c => c.caja?.tipo === 'bancaria').reduce((s, c) => s + c.monto, 0)
+  const hasFilters = !!query || tipo !== 'todos'
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="page-wrapper space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="page-title">Compras y Gastos</h1>
-          <p className="page-subtitle">{compras.length} registros</p>
+          <p className="page-subtitle">
+            {hasFilters ? `${total} de ${resumen.registros} registros` : `${resumen.registros} registros`}
+          </p>
         </div>
         {canWrite && (
           <button onClick={openCreate} className="btn btn-primary">
@@ -210,27 +252,35 @@ export function ComprasClient({
       {/* Summary cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <SummaryCard icon={<Tag size={18} style={{ color: '#92400e' }} />} bg="#fef3c7"
-          label="Total compras" value={formatCOP(totalCompras)} valueColor="#dc2626" />
+          label="Total compras" value={formatCOP(resumen.compras)} valueColor="#dc2626" />
         <SummaryCard icon={<Receipt size={18} style={{ color: '#1e40af' }} />} bg="#dbeafe"
-          label="Total gastos" value={formatCOP(totalGastos)} valueColor="#dc2626" />
+          label="Total gastos" value={formatCOP(resumen.gastos)} valueColor="#dc2626" />
         <SummaryCard icon={<Banknote size={18} style={{ color: '#065f46' }} />} bg="#d1fae5"
-          label="Salida efectivo" value={formatCOP(totalEfectivo)} valueColor="#dc2626" />
+          label="Salida efectivo" value={formatCOP(resumen.efectivo)} valueColor="#dc2626" />
         <SummaryCard icon={<Wallet size={18} style={{ color: '#1e40af' }} />} bg="#dbeafe"
-          label="Salida bancaria" value={formatCOP(totalBancaria)} valueColor="#dc2626" />
+          label="Salida bancaria" value={formatCOP(resumen.bancaria)} valueColor="#dc2626" />
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-2">
-        {(['todos', 'compra', 'gasto'] as const).map(t => (
-          <button key={t} onClick={() => setFilterTipo(t)}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all"
-            style={{
-              background: filterTipo === t ? 'var(--primary)' : 'var(--secondary)',
-              color: filterTipo === t ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
-            }}>
-            {t === 'todos' ? 'Todos' : TIPO_CONFIG[t].label + 's'}
-          </button>
-        ))}
+      {/* Busqueda y filtros */}
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchField
+          value={search}
+          onChange={setSearch}
+          placeholder="Buscar por concepto o proveedor…"
+          className="w-full sm:w-72"
+        />
+        <div className="flex gap-2 flex-wrap">
+          {(['todos', 'compra', 'gasto'] as const).map(t => (
+            <button
+              key={t}
+              onClick={() => navigate({ tipo: t, page: 1 })}
+              data-active={tipo === t}
+              className="filter-pill capitalize">
+              {t === 'todos' ? 'Todos' : TIPO_CONFIG[t].label + 's'}
+              <span className="text-xs opacity-70">{conteos[t] ?? 0}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Table */}
@@ -250,7 +300,7 @@ export function ComprasClient({
             </tr>
           </thead>
           <tbody>
-            {filtered.map(c => {
+            {compras.map(c => {
               const cfg = TIPO_CONFIG[c.tipo]
               return (
                 <tr key={c.id}>
@@ -299,13 +349,22 @@ export function ComprasClient({
           </tbody>
         </table>
         </div>
-        {filtered.length === 0 && (
+        {compras.length === 0 && (
           <EmptyState
             icon={ShoppingBag}
-            title="Sin registros"
-            description="Registra compras y gastos para verlos reflejados en tus informes."
+            title={hasFilters ? 'Sin resultados' : 'Sin registros'}
+            description={hasFilters
+              ? 'Ningun registro coincide con la busqueda o el filtro aplicado.'
+              : 'Registra compras y gastos para verlos reflejados en tus informes.'}
           />
         )}
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          busy={navigating}
+          onPageChange={p => navigate({ page: p })}
+        />
       </div>
 
       {/* Modal */}

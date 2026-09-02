@@ -1,23 +1,67 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState, useTransition } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Order } from '@/lib/types'
 import { formatCOP, formatDate, formatDateTime, getWhatsAppLink, PAYMENT_METHODS } from '@/lib/utils'
 import { FileText, Send, MessageCircle, Eye, Download, RotateCcw, AlertTriangle, Package, Wallet, CheckCircle, ChevronDown, X } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
 import { useCanWrite } from '@/lib/perfil-context'
+import { Pagination } from '@/components/ui/Pagination'
 
-export function InvoicesClient({ orders: initialOrders }: { orders: Order[] }) {
+export function InvoicesClient({
+  orders: initialOrders, page, pageSize, total, query, metodo, metodos,
+}: {
+  orders: Order[]
+  page: number
+  pageSize: number
+  total: number
+  query: string
+  metodo: string
+  metodos: string[]
+}) {
   const canWrite                        = useCanWrite()
+  const router                          = useRouter()
+  const pathname                        = usePathname()
+  const [navigating, startNavigation]   = useTransition()
+
+  // El servidor entrega la pagina ya filtrada; el estado local solo absorbe
+  // la reversion de una factura.
   const [orders, setOrders]             = useState(initialOrders)
+  const [seed, setSeed]                 = useState(initialOrders)
+  if (seed !== initialOrders) {
+    setSeed(initialOrders)
+    setOrders(initialOrders)
+  }
   const [sending, setSending]           = useState<string | null>(null)
   const [preview, setPreview]           = useState<Order | null>(null)
   const [confirmOrder, setConfirmOrder] = useState<Order | null>(null)
   const [reversando, setReversando]     = useState(false)
   const [successMsg, setSuccessMsg]     = useState('')
-  const [filterCliente, setFilterCliente] = useState('')
-  const [filterMetodo, setFilterMetodo]   = useState('')
+  // Texto del buscador: local para no perder el foco entre navegaciones
+  const [search, setSearch]             = useState(query)
+
+  /** Reescribe la URL con los filtros activos; el servidor devuelve la pagina. */
+  function navigate(next: { q?: string; metodo?: string; page?: number }) {
+    const params   = new URLSearchParams()
+    const nextQ    = (next.q ?? query).trim()
+    const nextMet  = next.metodo ?? metodo
+    const nextPage = next.page ?? 1
+    if (nextQ)        params.set('q', nextQ)
+    if (nextMet)      params.set('metodo', nextMet)
+    if (nextPage > 1) params.set('page', String(nextPage))
+    const qs = params.toString()
+    startNavigation(() => router.push(qs ? `${pathname}?${qs}` : pathname))
+  }
+
+  // Busqueda con retardo: evita una consulta por cada tecla
+  useEffect(() => {
+    if (search.trim() === query) return
+    const timer = setTimeout(() => navigate({ q: search, page: 1 }), 350)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search])
 
   useEscKey(() => {
     if (confirmOrder && !reversando) { setConfirmOrder(null); return }
@@ -123,20 +167,7 @@ export function InvoicesClient({ orders: initialOrders }: { orders: Order[] }) {
     setTimeout(() => setSuccessMsg(''), 5000)
   }
 
-  // ── Filtros ──────────────────────────────────────────────────
-  const uniqueMethods = Array.from(new Set(
-    orders.map(o => PAYMENT_METHODS[o.payment_method] ?? o.payment_method)
-  )).sort()
-
-  const filtered = orders.filter(o => {
-    const name = (o as any).customer?.full_name?.toLowerCase() ?? ''
-    const method = PAYMENT_METHODS[o.payment_method] ?? o.payment_method
-    const matchCliente = !filterCliente || name.includes(filterCliente.toLowerCase())
-    const matchMetodo  = !filterMetodo  || method === filterMetodo
-    return matchCliente && matchMetodo
-  })
-
-  const hasFilter = filterCliente || filterMetodo
+  const hasFilter = !!query || !!metodo
 
   // ── Render ───────────────────────────────────────────────────
   return (
@@ -147,14 +178,14 @@ export function InvoicesClient({ orders: initialOrders }: { orders: Order[] }) {
           <p className="page-subtitle">
             Pedidos completados ·{' '}
             {hasFilter
-              ? <><span style={{ color: 'var(--primary)', fontWeight: 600 }}>{filtered.length}</span> de {orders.length} facturas</>
-              : <>{orders.length} facturas</>
+              ? <><span style={{ color: 'var(--primary)', fontWeight: 600 }}>{total}</span> factura(s) con este filtro</>
+              : <>{total} facturas</>
             }
           </p>
         </div>
         {hasFilter && (
           <button
-            onClick={() => { setFilterCliente(''); setFilterMetodo('') }}
+            onClick={() => { setSearch(''); navigate({ q: '', metodo: '', page: 1 }) }}
             className="btn btn-secondary btn-sm">
             <X size={12} /> Limpiar filtros
           </button>
@@ -170,7 +201,10 @@ export function InvoicesClient({ orders: initialOrders }: { orders: Order[] }) {
         </div>
       )}
 
-      <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>
+      <div className="rounded-xl border" style={{
+        background: '#fff', borderColor: 'var(--border)', overflow: 'hidden',
+        opacity: navigating ? 0.6 : 1, transition: 'opacity 0.15s ease',
+      }}>
         <div className="table-wrap">
           <table className="data-table">
             <thead>
@@ -184,25 +218,26 @@ export function InvoicesClient({ orders: initialOrders }: { orders: Order[] }) {
                   <div className="relative">
                     <input
                       type="text"
-                      value={filterCliente}
-                      onChange={e => setFilterCliente(e.target.value)}
+                      value={search}
+                      onChange={e => setSearch(e.target.value)}
                       placeholder="Buscar cliente..."
                       className="w-full text-xs rounded-md px-2.5 py-1.5 pr-7 outline-none"
                       style={{
-                        border: `1px solid ${filterCliente ? 'var(--primary)' : 'var(--border)'}`,
-                        background: filterCliente ? '#fdf8f3' : '#fff',
+                        border: `1px solid ${search ? 'var(--primary)' : 'var(--border)'}`,
+                        background: search ? '#fdf8f3' : '#fff',
                         color: 'var(--foreground)',
                       }}
                     />
-                    {filterCliente
-                      ? <button onClick={() => setFilterCliente('')} className="absolute right-1.5 top-1/2 -translate-y-1/2">
+                    {search
+                      ? <button onClick={() => { setSearch(''); navigate({ q: '', page: 1 }) }} className="absolute right-1.5 top-1/2 -translate-y-1/2">
                           <X size={11} style={{ color: 'var(--muted-foreground)' }} />
                         </button>
                       : <span className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none">
                           <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="6" r="5" stroke="#9ca3af" strokeWidth="1.5"/><path d="M10 10l4 4" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round"/></svg>
                         </span>
                     }
-                  </div>
+        
+          </div>
                 </th>
 
                 {/* Fecha */}
@@ -216,24 +251,26 @@ export function InvoicesClient({ orders: initialOrders }: { orders: Order[] }) {
                   <div className="text-xs font-medium mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Método</div>
                   <div className="relative">
                     <select
-                      value={filterMetodo}
-                      onChange={e => setFilterMetodo(e.target.value)}
+                      value={metodo}
+                      onChange={e => navigate({ metodo: e.target.value, page: 1 })}
                       className="w-full appearance-none text-xs rounded-md px-2.5 py-1.5 pr-7 outline-none"
                       style={{
-                        border: `1px solid ${filterMetodo ? 'var(--primary)' : 'var(--border)'}`,
-                        background: filterMetodo ? '#fdf8f3' : '#fff',
-                        color: filterMetodo ? 'var(--foreground)' : 'var(--muted-foreground)',
+                        border: `1px solid ${metodo ? 'var(--primary)' : 'var(--border)'}`,
+                        background: metodo ? '#fdf8f3' : '#fff',
+                        color: metodo ? 'var(--foreground)' : 'var(--muted-foreground)',
                         cursor: 'pointer',
                       }}>
                       <option value="">Todos los métodos</option>
-                      {uniqueMethods.map(m => <option key={m} value={m}>{m}</option>)}
+                      {metodos.map(m => (
+                        <option key={m} value={m}>{PAYMENT_METHODS[m] ?? m}</option>
+                      ))}
                     </select>
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
                       <ChevronDown size={11} style={{ color: '#9ca3af' }} />
                     </span>
-                    {filterMetodo && (
+                    {metodo && (
                       <button
-                        onClick={() => setFilterMetodo('')}
+                        onClick={() => navigate({ metodo: '', page: 1 })}
                         className="absolute right-6 top-1/2 -translate-y-1/2">
                         <X size={11} style={{ color: 'var(--muted-foreground)' }} />
                       </button>
@@ -249,7 +286,7 @@ export function InvoicesClient({ orders: initialOrders }: { orders: Order[] }) {
               </tr>
             </thead>
             <tbody>
-              {filtered.map(order => {
+              {orders.map(order => {
                 const customer = (order as any).customer
                 return (
                   <tr key={order.id}>
@@ -310,7 +347,7 @@ export function InvoicesClient({ orders: initialOrders }: { orders: Order[] }) {
             </tbody>
           </table>
         </div>
-        {filtered.length === 0 && (
+        {orders.length === 0 && (
           <div className="empty-state">
             <div className="empty-state-icon"><FileText size={26} /></div>
             <p className="empty-state-title">{hasFilter ? 'Sin resultados' : 'Aún no hay facturas'}</p>
@@ -318,13 +355,20 @@ export function InvoicesClient({ orders: initialOrders }: { orders: Order[] }) {
               {hasFilter ? 'Ninguna factura coincide con los filtros aplicados.' : 'Completa un pedido para generar la primera factura.'}
             </p>
             {hasFilter && (
-              <button onClick={() => { setFilterCliente(''); setFilterMetodo('') }}
+              <button onClick={() => { setSearch(''); navigate({ q: '', metodo: '', page: 1 }) }}
                 className="mt-2 text-xs underline" style={{ color: 'var(--primary)' }}>
                 Limpiar filtros
               </button>
             )}
           </div>
         )}
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          busy={navigating}
+          onPageChange={p => navigate({ page: p })}
+        />
       </div>
 
       {/* ── Modal: ver factura ─────────────────────────────────── */}
