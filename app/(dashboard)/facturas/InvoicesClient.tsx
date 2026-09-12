@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Order } from '@/lib/types'
-import { formatCOP, formatDate, formatDateTime, getWhatsAppLink, PAYMENT_METHODS, CUENTA_PAGO } from '@/lib/utils'
+import { formatCOP, formatDate, formatDateTime, getWhatsAppLink, PAYMENT_METHODS, CUENTA_PAGO, escapeHtml } from '@/lib/utils'
 import { FileText, Send, MessageCircle, Eye, Download, RotateCcw, AlertTriangle, Package, Wallet, CheckCircle, ChevronDown, X } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
 import { useCanWrite } from '@/lib/perfil-context'
@@ -100,9 +100,12 @@ export function InvoicesClient({
   function printPDF(order: Order) {
     const customer = (order as any).customer
     const items: any[] = (order as any).items ?? []
+    // Nombres de cliente y de producto son texto libre creado por el propio
+    // equipo de ventas: se escapan antes de interpolarlos porque esta
+    // ventana se abre en el mismo origen que el resto de la app.
     const itemsHTML = items.map((item: any) => `
       <tr>
-        <td style="padding:10px 8px;border-bottom:1px solid #f5e8d8;color:#2c1810;">${item.product_name}</td>
+        <td style="padding:10px 8px;border-bottom:1px solid #f5e8d8;color:#2c1810;">${escapeHtml(item.product_name)}</td>
         <td style="padding:10px 8px;border-bottom:1px solid #f5e8d8;text-align:right;color:#6b4423;">${formatCOP(item.unit_price)}</td>
         <td style="padding:10px 8px;border-bottom:1px solid #f5e8d8;text-align:right;color:#6b4423;">${item.quantity}</td>
         <td style="padding:10px 8px;border-bottom:1px solid #f5e8d8;text-align:right;font-weight:600;color:#2c1810;">${formatCOP(item.subtotal)}</td>
@@ -110,11 +113,11 @@ export function InvoicesClient({
     const customerHTML = customer ? `
       <div style="background:#fdf8f3;border-radius:12px;padding:16px;margin-bottom:24px;">
         <p style="font-size:11px;font-weight:600;color:#6b4423;margin:0 0 8px;">CLIENTE</p>
-        <p style="font-weight:500;color:#2c1810;margin:0 0 4px;">${customer.full_name}</p>
-        ${customer.document_type && customer.document_number ? `<p style="font-size:13px;color:#6b4423;margin:2px 0;">${customer.document_type}: ${customer.document_number}</p>` : ''}
-        ${customer.email ? `<p style="font-size:13px;color:#6b4423;margin:2px 0;">${customer.email}</p>` : ''}
-        ${customer.phone ? `<p style="font-size:13px;color:#6b4423;margin:2px 0;">${customer.phone}</p>` : ''}
-        ${customer.city ? `<p style="font-size:13px;color:#6b4423;margin:2px 0;">${customer.address ? customer.address + ', ' : ''}${customer.city}</p>` : ''}
+        <p style="font-weight:500;color:#2c1810;margin:0 0 4px;">${escapeHtml(customer.full_name)}</p>
+        ${customer.document_type && customer.document_number ? `<p style="font-size:13px;color:#6b4423;margin:2px 0;">${escapeHtml(customer.document_type)}: ${escapeHtml(customer.document_number)}</p>` : ''}
+        ${customer.email ? `<p style="font-size:13px;color:#6b4423;margin:2px 0;">${escapeHtml(customer.email)}</p>` : ''}
+        ${customer.phone ? `<p style="font-size:13px;color:#6b4423;margin:2px 0;">${escapeHtml(customer.phone)}</p>` : ''}
+        ${customer.city ? `<p style="font-size:13px;color:#6b4423;margin:2px 0;">${customer.address ? escapeHtml(customer.address) + ', ' : ''}${escapeHtml(customer.city)}</p>` : ''}
       </div>` : ''
     const discountHTML = order.discount > 0 ? `
       <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px;">

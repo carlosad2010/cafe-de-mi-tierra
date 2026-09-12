@@ -41,6 +41,20 @@ export function formatDateTime(date: string | Date): string {
   }).format(new Date(date))
 }
 
+/**
+ * Escapa texto para insertarlo en HTML armado como string (plantillas de
+ * factura y de correo). Sin esto, un nombre de cliente con `<script>` o un
+ * atributo `onerror=` se ejecutaría al imprimirse o al abrirse el correo.
+ */
+export function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 export function getWhatsAppLink(phone: string, message: string): string {
   const cleaned = phone.replace(/\D/g, '')
   const number = cleaned.startsWith('57') ? cleaned : `57${cleaned}`

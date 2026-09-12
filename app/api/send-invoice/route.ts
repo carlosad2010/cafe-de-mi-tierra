@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { Resend } from 'resend'
 import { NextRequest, NextResponse } from 'next/server'
-import { formatCOP, formatDate, PAYMENT_METHODS } from '@/lib/utils'
+import { formatCOP, formatDate, PAYMENT_METHODS, escapeHtml } from '@/lib/utils'
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export async function POST(req: NextRequest) {
   const resend = new Resend(process.env.RESEND_API_KEY)
@@ -23,7 +25,16 @@ export async function POST(req: NextRequest) {
       { status: 403 })
   }
 
-  const { orderId } = await req.json()
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Cuerpo de la petición inválido' }, { status: 400 })
+  }
+  const orderId = (body as { orderId?: unknown })?.orderId
+  if (typeof orderId !== 'string' || !UUID_RE.test(orderId)) {
+    return NextResponse.json({ error: 'orderId inválido' }, { status: 400 })
+  }
 
   const { data: order } = await supabase
     .from('orders')
@@ -36,9 +47,13 @@ export async function POST(req: NextRequest) {
   const customer = (order as any).customer
   if (!customer?.email) return NextResponse.json({ error: 'Cliente sin correo' }, { status: 400 })
 
+  // product_name y full_name son texto libre creado por el equipo de
+  // ventas: se escapan antes de interpolarlos en el HTML del correo — de lo
+  // contrario un nombre malicioso podría inyectar un enlace de phishing en
+  // un correo que sale legítimamente a nombre de Café de mi Tierra.
   const items = ((order as any).items ?? [])
     .map((i: any) => `<tr>
-      <td style="padding:8px 12px;border-bottom:1px solid #f5e8d8;">${i.product_name}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #f5e8d8;">${escapeHtml(i.product_name)}</td>
       <td style="padding:8px 12px;border-bottom:1px solid #f5e8d8;text-align:right;">${formatCOP(i.unit_price)}</td>
       <td style="padding:8px 12px;border-bottom:1px solid #f5e8d8;text-align:center;">${i.quantity}</td>
       <td style="padding:8px 12px;border-bottom:1px solid #f5e8d8;text-align:right;font-weight:600;">${formatCOP(i.subtotal)}</td>
@@ -50,7 +65,7 @@ export async function POST(req: NextRequest) {
         <h1 style="color:#8b5e3c;font-size:22px;margin:0;">Café de mi Tierra</h1>
         <p style="color:#6b4423;margin:4px 0 0;">Pedido #${order.order_number}</p>
       </div>
-      <p style="color:#2c1810;">Hola <strong>${customer.full_name}</strong>,</p>
+      <p style="color:#2c1810;">Hola <strong>${escapeHtml(customer.full_name)}</strong>,</p>
       <p style="color:#6b4423;">Gracias por tu compra. Aquí está el detalle de tu pedido del ${formatDate(order.created_at)}:</p>
       <table style="width:100%;border-collapse:collapse;margin:16px 0;background:#fff;border-radius:12px;overflow:hidden;">
         <thead>
