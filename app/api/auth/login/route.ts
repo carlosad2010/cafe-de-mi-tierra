@@ -2,13 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
 export async function POST(request: NextRequest) {
-  const formData = await request.formData()
-  const email = formData.get('email') as string
-  const password = formData.get('password') as string
-
   const successUrl = new URL('/dashboard', request.url)
   const errorUrl = new URL('/login', request.url)
   errorUrl.searchParams.set('error', '1')
+
+  let formData: FormData
+  try {
+    formData = await request.formData()
+  } catch {
+    return NextResponse.redirect(errorUrl, { status: 303 })
+  }
+  const email = formData.get('email')
+  const password = formData.get('password')
+  if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
+    return NextResponse.redirect(errorUrl, { status: 303 })
+  }
 
   // Build the success response first so we can bind cookies to it
   const response = NextResponse.redirect(successUrl, { status: 303 })
