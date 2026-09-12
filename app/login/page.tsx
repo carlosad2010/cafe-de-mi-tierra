@@ -174,7 +174,9 @@ function LoginForm({ searchParamsPromise }: { searchParamsPromise: Promise<{ err
                     <line x1="15" y1="9" x2="9" y2="15"/>
                     <line x1="9" y1="9" x2="15" y2="15"/>
                   </svg>
-                  Correo o contraseña incorrectos
+                  {params.error === 'inactive'
+                    ? 'Tu usuario fue desactivado. Contacta a un administrador.'
+                    : 'Correo o contraseña incorrectos'}
                 </div>
               )}
 
