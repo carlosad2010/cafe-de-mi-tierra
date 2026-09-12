@@ -108,7 +108,12 @@ function downloadCSV(data: Record<string, unknown>[], filename: string) {
   const rows = data.map(row =>
     headers.map(h => {
       const v = row[h]
-      return typeof v === 'string' ? `"${v.replace(/"/g, '""')}"` : String(v ?? '')
+      if (typeof v !== 'string') return String(v ?? '')
+      // Excel/Sheets tratan un valor que empieza así como fórmula al abrir
+      // el archivo (p. ej. un nombre de cliente "=HYPERLINK(...)"); un
+      // apóstrofo por delante lo neutraliza sin cambiar el texto visible.
+      const safe = /^[=+\-@\t\r]/.test(v) ? `'${v}` : v
+      return `"${safe.replace(/"/g, '""')}"`
     }).join(',')
   )
   const csv  = '﻿' + [headers.join(','), ...rows].join('\n')
