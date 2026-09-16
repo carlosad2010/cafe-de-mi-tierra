@@ -79,7 +79,7 @@ function detectPriceTier(items: any[], products: Product[]): 'precio1' | 'precio
 
 export function SalesClient({
   initialOrders, products, customers, metodosPago,
-  page, pageSize, total, status, query, statusCounts,
+  page, pageSize, total, status, query, statusCounts, fromDate, toDate,
 }: {
   initialOrders: Order[]
   products: Product[]
@@ -91,6 +91,8 @@ export function SalesClient({
   status: string
   query: string
   statusCounts: Record<string, number>
+  fromDate?: string
+  toDate?: string
 }) {
   const defaultMetodo = metodosPago[0]?.nombre ?? 'Efectivo'
   const router   = useRouter()
@@ -109,6 +111,10 @@ export function SalesClient({
 
   // Texto del buscador: local para no perder el foco entre navegaciones
   const [search, setSearch] = useState(query)
+
+  // Date filters
+  const [localFromDate, setLocalFromDate] = useState(fromDate || '')
+  const [localToDate, setLocalToDate] = useState(toDate || '')
 
   // Create modal
   const [showCreate, setShowCreate] = useState(false)
@@ -385,14 +391,18 @@ export function SalesClient({
   // ── Filtered list ─────────────────────────────────────────────────────────────
 
   /** Reescribe la URL con los filtros activos; el servidor devuelve la página. */
-  function navigate(next: { status?: string; q?: string; page?: number }) {
+  function navigate(next: { status?: string; q?: string; page?: number; fromDate?: string; toDate?: string }) {
     const params   = new URLSearchParams()
     const nextStat = next.status ?? status
     const nextQ    = (next.q ?? query).trim()
     const nextPage = next.page ?? 1
+    const nextFrom = next.fromDate ?? localFromDate
+    const nextTo   = next.toDate ?? localToDate
     if (nextStat !== 'todos') params.set('status', nextStat)
     if (nextQ)                params.set('q', nextQ)
     if (nextPage > 1)         params.set('page', String(nextPage))
+    if (nextFrom)             params.set('fromDate', nextFrom)
+    if (nextTo)               params.set('toDate', nextTo)
     const qs = params.toString()
     startNavigation(() => router.push(qs ? `${pathname}?${qs}` : pathname))
   }
@@ -431,7 +441,7 @@ export function SalesClient({
       </div>
 
       {/* Búsqueda y filtros */}
-      <div className="flex flex-wrap items-center gap-2 mb-4">
+      <div className="flex flex-wrap items-center gap-3 mb-4">
         <SearchField
           value={search}
           onChange={setSearch}
@@ -449,6 +459,34 @@ export function SalesClient({
               <span className="text-xs opacity-70">{statusCounts[s] ?? 0}</span>
             </button>
           ))}
+        </div>
+        {/* Date filters */}
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={localFromDate}
+            max={localToDate || undefined}
+            onChange={e => {
+              setLocalFromDate(e.target.value)
+              navigate({ fromDate: e.target.value, toDate: localToDate, page: 1 })
+            }}
+            placeholder="Desde"
+            className="input-field"
+            style={{ width: 'auto', padding: '0.375rem 0.5rem', fontSize: '0.875rem' }}
+          />
+          <span style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>a</span>
+          <input
+            type="date"
+            value={localToDate}
+            min={localFromDate || undefined}
+            onChange={e => {
+              setLocalToDate(e.target.value)
+              navigate({ fromDate: localFromDate, toDate: e.target.value, page: 1 })
+            }}
+            placeholder="Hasta"
+            className="input-field"
+            style={{ width: 'auto', padding: '0.375rem 0.5rem', fontSize: '0.875rem' }}
+          />
         </div>
       </div>
 

@@ -11,7 +11,7 @@ import { useCanWrite } from '@/lib/perfil-context'
 import { Pagination } from '@/components/ui/Pagination'
 
 export function InvoicesClient({
-  orders: initialOrders, page, pageSize, total, query, metodo, metodos,
+  orders: initialOrders, page, pageSize, total, query, metodo, metodos, fromDate, toDate,
 }: {
   orders: Order[]
   page: number
@@ -20,6 +20,8 @@ export function InvoicesClient({
   query: string
   metodo: string
   metodos: string[]
+  fromDate?: string
+  toDate?: string
 }) {
   const canWrite                        = useCanWrite()
   const router                          = useRouter()
@@ -42,15 +44,23 @@ export function InvoicesClient({
   // Texto del buscador: local para no perder el foco entre navegaciones
   const [search, setSearch]             = useState(query)
 
+  // Date filters
+  const [localFromDate, setLocalFromDate] = useState(fromDate || '')
+  const [localToDate, setLocalToDate] = useState(toDate || '')
+
   /** Reescribe la URL con los filtros activos; el servidor devuelve la pagina. */
-  function navigate(next: { q?: string; metodo?: string; page?: number }) {
+  function navigate(next: { q?: string; metodo?: string; page?: number; fromDate?: string; toDate?: string }) {
     const params   = new URLSearchParams()
     const nextQ    = (next.q ?? query).trim()
     const nextMet  = next.metodo ?? metodo
     const nextPage = next.page ?? 1
+    const nextFrom = next.fromDate ?? localFromDate
+    const nextTo   = next.toDate ?? localToDate
     if (nextQ)        params.set('q', nextQ)
     if (nextMet)      params.set('metodo', nextMet)
     if (nextPage > 1) params.set('page', String(nextPage))
+    if (nextFrom)     params.set('fromDate', nextFrom)
+    if (nextTo)       params.set('toDate', nextTo)
     const qs = params.toString()
     startNavigation(() => router.push(qs ? `${pathname}?${qs}` : pathname))
   }
@@ -282,6 +292,44 @@ export function InvoicesClient({
                         <X size={11} style={{ color: 'var(--muted-foreground)' }} />
                       </button>
                     )}
+                  </div>
+                </th>
+
+                {/* Fecha range */}
+                <th className="hidden lg:table-cell" style={{ minWidth: '200px' }}>
+                  <div className="text-xs font-medium mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Rango de fechas</div>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="date"
+                      value={localFromDate}
+                      max={localToDate || undefined}
+                      onChange={e => {
+                        setLocalFromDate(e.target.value)
+                        navigate({ fromDate: e.target.value, toDate: localToDate, page: 1 })
+                      }}
+                      className="text-xs rounded-md px-2.5 py-1.5 outline-none flex-1"
+                      style={{
+                        border: `1px solid ${localFromDate ? 'var(--primary)' : 'var(--border)'}`,
+                        background: localFromDate ? '#fdf8f3' : '#fff',
+                        color: 'var(--foreground)',
+                      }}
+                    />
+                    <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>a</span>
+                    <input
+                      type="date"
+                      value={localToDate}
+                      min={localFromDate || undefined}
+                      onChange={e => {
+                        setLocalToDate(e.target.value)
+                        navigate({ fromDate: localFromDate, toDate: e.target.value, page: 1 })
+                      }}
+                      className="text-xs rounded-md px-2.5 py-1.5 outline-none flex-1"
+                      style={{
+                        border: `1px solid ${localToDate ? 'var(--primary)' : 'var(--border)'}`,
+                        background: localToDate ? '#fdf8f3' : '#fff',
+                        color: 'var(--foreground)',
+                      }}
+                    />
                   </div>
                 </th>
 

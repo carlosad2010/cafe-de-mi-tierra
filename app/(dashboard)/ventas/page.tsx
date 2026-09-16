@@ -16,12 +16,14 @@ const NO_MATCH = '00000000-0000-0000-0000-000000000000'
 export default async function SalesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; status?: string; q?: string }>
+  searchParams: Promise<{ page?: string; status?: string; q?: string; fromDate?: string; toDate?: string }>
 }) {
-  const sp     = await searchParams
-  const page   = Math.max(1, Number(sp.page) || 1)
-  const status = sp.status && STATUSES.includes(sp.status as any) ? sp.status : 'todos'
-  const q      = (sp.q ?? '').trim()
+  const sp       = await searchParams
+  const page     = Math.max(1, Number(sp.page) || 1)
+  const status   = sp.status && STATUSES.includes(sp.status as any) ? sp.status : 'todos'
+  const q        = (sp.q ?? '').trim()
+  const fromDate = sp.fromDate ? new Date(`${sp.fromDate}T00:00:00`).toISOString() : null
+  const toDate   = sp.toDate ? new Date(`${sp.toDate}T23:59:59.999`).toISOString() : null
 
   const supabase = await createClient()
 
@@ -41,11 +43,13 @@ export default async function SalesPage({
   }
 
   /** Aplica los filtros activos a cualquier consulta sobre `orders`. */
-  function applyFilters<T extends { eq: any; in: any }>(query: T, withStatus: string | null): T {
+  function applyFilters<T extends { eq: any; in: any; gte: any; lte: any }>(query: T, withStatus: string | null): T {
     let out: any = query
     if (withStatus && withStatus !== 'todos') out = out.eq('status', withStatus)
     if (q && isNumeric) out = out.eq('order_number', Number(q))
     if (customerIds) out = out.in('customer_id', customerIds)
+    if (fromDate) out = out.gte('created_at', fromDate)
+    if (toDate) out = out.lte('created_at', toDate)
     return out
   }
 
@@ -91,6 +95,8 @@ export default async function SalesPage({
       status={status}
       query={q}
       statusCounts={statusCounts}
+      fromDate={sp.fromDate}
+      toDate={sp.toDate}
     />
   )
 }

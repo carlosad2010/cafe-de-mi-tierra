@@ -14,12 +14,14 @@ const NO_MATCH = '00000000-0000-0000-0000-000000000000'
 export default async function InvoicesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; q?: string; metodo?: string }>
+  searchParams: Promise<{ page?: string; q?: string; metodo?: string; fromDate?: string; toDate?: string }>
 }) {
-  const sp     = await searchParams
-  const page   = Math.max(1, Math.floor(Number(sp.page)) || 1)
-  const q      = (sp.q ?? '').trim()
-  const metodo = (sp.metodo ?? '').trim()
+  const sp       = await searchParams
+  const page     = Math.max(1, Math.floor(Number(sp.page)) || 1)
+  const q        = (sp.q ?? '').trim()
+  const metodo   = (sp.metodo ?? '').trim()
+  const fromDate = sp.fromDate ? new Date(`${sp.fromDate}T00:00:00`).toISOString() : null
+  const toDate   = sp.toDate ? new Date(`${sp.toDate}T23:59:59.999`).toISOString() : null
 
   const supabase = await createClient()
 
@@ -43,6 +45,8 @@ export default async function InvoicesPage({
 
   if (metodo)      query = query.eq('payment_method', metodo)
   if (customerIds) query = query.in('customer_id', customerIds)
+  if (fromDate)    query = query.gte('created_at', fromDate)
+  if (toDate)      query = query.lte('created_at', toDate)
 
   const from = (page - 1) * PAGE_SIZE
   const { data: orders, count } = await query
@@ -66,6 +70,8 @@ export default async function InvoicesPage({
       query={q}
       metodo={metodo}
       metodos={metodos}
+      fromDate={sp.fromDate}
+      toDate={sp.toDate}
     />
   )
 }
