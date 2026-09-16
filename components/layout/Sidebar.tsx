@@ -19,6 +19,7 @@ import {
   ShoppingBag,
   Settings,
   BarChart2,
+  TrendingUp,
   X,
 } from 'lucide-react'
 
@@ -54,6 +55,7 @@ const navGroups: NavGroup[] = [
       { href: '/cajas',          label: 'Cajas',            icon: Wallet,      roles: TODOS },
       { href: '/compras',        label: 'Compras y Gastos', icon: ShoppingBag, roles: TODOS },
       { href: '/informes',       label: 'Informes',         icon: BarChart2,   roles: TODOS },
+      { href: '/comisiones',     label: 'Comisiones',       icon: TrendingUp,  roles: TODOS },
     ],
   },
   {
