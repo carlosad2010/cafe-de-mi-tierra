@@ -27,23 +27,25 @@ type ProductReport = {
   cost_price: number; precio1: number; precio2: number; stock: number
 }
 
-type Period = '7d' | '30d' | '90d' | '180d' | '365d' | 'all'
-type Tab    = 'resumen' | 'ventas' | 'clientes' | 'compras' | 'rentabilidad'
+type Period = '7d' | '30d' | '90d' | '180d' | '365d' | 'all' | 'custom'
+type Tab    = 'resumen' | 'ventas' | 'clientes' | 'vendedores' | 'compras' | 'rentabilidad'
 
 // ─── Constants ────────────────────────────────────────────────
 const PERIODS: { key: Period; label: string }[] = [
-  { key: '7d',   label: '7 días'   },
-  { key: '30d',  label: '30 días'  },
-  { key: '90d',  label: '3 meses'  },
-  { key: '180d', label: '6 meses'  },
-  { key: '365d', label: '1 año'    },
-  { key: 'all',  label: 'Todo'     },
+  { key: '7d',     label: '7 días'       },
+  { key: '30d',    label: '30 días'      },
+  { key: '90d',    label: '3 meses'      },
+  { key: '180d',   label: '6 meses'      },
+  { key: '365d',   label: '1 año'        },
+  { key: 'all',    label: 'Todo'         },
+  { key: 'custom', label: 'Personalizado' },
 ]
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'resumen',      label: 'Resumen'          },
   { key: 'ventas',       label: 'Ventas'            },
   { key: 'clientes',     label: 'Clientes'          },
+  { key: 'vendedores',   label: 'Vendedores'        },
   { key: 'compras',      label: 'Compras & Gastos'  },
   { key: 'rentabilidad', label: 'Rentabilidad'      },
 ]
@@ -58,18 +60,31 @@ const PAYMENT_LABELS: Record<string, string> = {
 const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
 
 // ─── Helpers ──────────────────────────────────────────────────
-function getCutoff(period: Period): Date {
-  if (period === 'all') return new Date(0)
+function getRange(period: Period, customFrom: string, customTo: string): { start: Date; end: Date } {
+  const end = new Date()
+  if (period === 'custom') {
+    const start = customFrom ? new Date(`${customFrom}T00:00:00`) : new Date(0)
+    const rangeEnd = customTo ? new Date(`${customTo}T23:59:59.999`) : end
+    return { start, end: rangeEnd }
+  }
+  if (period === 'all') return { start: new Date(0), end }
   const days: Record<string, number> = { '7d': 7, '30d': 30, '90d': 90, '180d': 180, '365d': 365 }
-  const d = new Date()
-  d.setDate(d.getDate() - days[period])
-  d.setHours(0, 0, 0, 0)
-  return d
+  const start = new Date()
+  start.setDate(start.getDate() - days[period])
+  start.setHours(0, 0, 0, 0)
+  return { start, end }
 }
 
-function groupByTime(orders: OrderReport[], period: Period) {
-  const byMonth = period === '365d' || period === 'all'
-  const byWeek  = period === '90d'  || period === '180d'
+function pickGranularity(start: Date, end: Date): 'day' | 'week' | 'month' {
+  const days = (end.getTime() - start.getTime()) / 86400000
+  if (days > 240) return 'month'
+  if (days > 70)  return 'week'
+  return 'day'
+}
+
+function groupByTime(orders: OrderReport[], granularity: 'day' | 'week' | 'month') {
+  const byMonth = granularity === 'month'
+  const byWeek  = granularity === 'week'
   const map = new Map<string, { label: string; total: number; profit: number; count: number }>()
 
   orders.forEach(o => {
@@ -179,18 +194,21 @@ export function InformesClient({
   compras: CompraReport[]
   products: ProductReport[]
 }) {
-  const [period, setPeriod] = useState<Period>('30d')
-  const [tab,    setTab]    = useState<Tab>('resumen')
+  const [period,     setPeriod]     = useState<Period>('30d')
+  const [tab,        setTab]        = useState<Tab>('resumen')
+  const [customFrom, setCustomFrom] = useState('')
+  const [customTo,   setCustomTo]   = useState('')
 
-  const cutoff = useMemo(() => getCutoff(period), [period])
+  const { start, end } = useMemo(() => getRange(period, customFrom, customTo), [period, customFrom, customTo])
+  const granularity = useMemo(() => pickGranularity(start, end), [start, end])
 
   const filteredOrders = useMemo(
-    () => orders.filter(o => new Date(o.created_at) >= cutoff),
-    [orders, cutoff]
+    () => orders.filter(o => { const d = new Date(o.created_at); return d >= start && d <= end }),
+    [orders, start, end]
   )
   const filteredCompras = useMemo(
-    () => compras.filter(c => new Date(c.fecha) >= cutoff),
-    [compras, cutoff]
+    () => compras.filter(c => { const d = new Date(c.fecha); return d >= start && d <= end }),
+    [compras, start, end]
   )
 
   // ── KPIs
@@ -205,7 +223,7 @@ export function InformesClient({
   }, [filteredOrders, filteredCompras])
 
   // ── Time series
-  const timeSeries = useMemo(() => groupByTime(filteredOrders, period), [filteredOrders, period])
+  const timeSeries = useMemo(() => groupByTime(filteredOrders, granularity), [filteredOrders, granularity])
 
   // ── Payment breakdown
   const paymentData = useMemo(() => {
@@ -240,6 +258,21 @@ export function InformesClient({
       else     map.set(key, { name: key, orders: 1, total: o.total })
     })
     return Array.from(map.values()).sort((a, b) => b.total - a.total).slice(0, 10)
+  }, [filteredOrders])
+
+  // ── Seller performance
+  const sellerStats = useMemo(() => {
+    const map = new Map<string, { name: string; orders: number; revenue: number; cost: number }>()
+    filteredOrders.forEach(o => {
+      const key  = o.seller?.full_name ?? 'Sin vendedor'
+      const cost = o.items.reduce((s, i) => s + i.cost_price * i.quantity, 0)
+      const ex   = map.get(key)
+      if (ex) { ex.orders++; ex.revenue += o.total; ex.cost += cost }
+      else     map.set(key, { name: key, orders: 1, revenue: o.total, cost })
+    })
+    return Array.from(map.values())
+      .map(s => ({ ...s, ticket: s.revenue / s.orders, margin: s.revenue > 0 ? (s.revenue - s.cost) / s.revenue * 100 : 0 }))
+      .sort((a, b) => b.revenue - a.revenue)
   }, [filteredOrders])
 
   // ── Compras breakdown
@@ -280,16 +313,29 @@ export function InformesClient({
           </p>
         </div>
         {/* Period selector */}
-        <div className="flex gap-1 p-1 rounded-xl" style={{ background: '#E7E4DF' }}>
-          {PERIODS.map(p => (
-            <button key={p.key} onClick={() => setPeriod(p.key)}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-              style={period === p.key
-                ? { background: '#1C1917', color: '#FFF8F0' }
-                : { color: '#78716C' }}>
-              {p.label}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex gap-1 p-1 rounded-xl" style={{ background: '#E7E4DF' }}>
+            {PERIODS.map(p => (
+              <button key={p.key} onClick={() => setPeriod(p.key)}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap"
+                style={period === p.key
+                  ? { background: '#1C1917', color: '#FFF8F0' }
+                  : { color: '#78716C' }}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+          {period === 'custom' && (
+            <div className="flex items-center gap-1.5">
+              <input type="date" value={customFrom} max={customTo || undefined}
+                onChange={e => setCustomFrom(e.target.value)}
+                className="input-field" style={{ width: 'auto', padding: '0.375rem 0.5rem', fontSize: '0.75rem' }} />
+              <span className="text-xs" style={{ color: '#A8A29E' }}>a</span>
+              <input type="date" value={customTo} min={customFrom || undefined}
+                onChange={e => setCustomTo(e.target.value)}
+                className="input-field" style={{ width: 'auto', padding: '0.375rem 0.5rem', fontSize: '0.75rem' }} />
+            </div>
+          )}
         </div>
       </div>
 
@@ -524,6 +570,68 @@ export function InformesClient({
                   </div>
                 ))}
                 {topClients.length === 0 && (
+                  <p className="text-xs text-center py-6" style={{ color: '#A8A29E' }}>Sin datos en el período</p>
+                )}
+              </div>
+            </SectionCard>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════ */}
+      {/* Tab: VENDEDORES                                       */}
+      {/* ══════════════════════════════════════════════════════ */}
+      {tab === 'vendedores' && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Bar chart */}
+            <SectionCard title="Ventas por vendedor">
+              <div className="p-5">
+                <ResponsiveContainer width="100%" height={Math.max(sellerStats.length * 36, 200)}>
+                  <BarChart data={sellerStats} layout="vertical" margin={{ left: 10, right: 20, top: 5, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#F0EDE8" horizontal={false} />
+                    <XAxis type="number" tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11, fill: '#A8A29E' }} tickLine={false} axisLine={false} />
+                    <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: '#78716C' }} tickLine={false} axisLine={false} width={85} />
+                    <Tooltip formatter={(v) => formatCOP(v as number)} contentStyle={tooltipStyle} />
+                    <Bar dataKey="revenue" name="Facturado" radius={[0, 4, 4, 0]}>
+                      {sellerStats.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </SectionCard>
+
+            {/* Seller list */}
+            <SectionCard title="Detalle"
+              action={<CsvButton onClick={() => downloadCSV(
+                sellerStats.map(s => ({
+                  Vendedor: s.name, Pedidos: s.orders, Facturado: s.revenue,
+                  TicketPromedio: Math.round(s.ticket), Margen: `${s.margin.toFixed(1)}%`,
+                })),
+                'vendedores.csv'
+              )} />}>
+              <div className="p-2">
+                {sellerStats.map((s, i) => (
+                  <div key={s.name} className="flex items-center justify-between px-3 py-3 rounded-xl transition-colors hover:bg-amber-50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                        style={{ background: COLORS[i % COLORS.length] + '22', color: COLORS[i % COLORS.length] }}>
+                        {s.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold" style={{ color: '#1C1917' }}>{s.name}</p>
+                        <p className="text-xs" style={{ color: '#A8A29E' }}>
+                          {s.orders} pedido{s.orders !== 1 ? 's' : ''} · prom. {formatCOP(Math.round(s.ticket))}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-bold" style={{ color: '#8B5C2A' }}>{formatCOP(s.revenue)}</p>
+                      <MarginBadge value={s.margin} />
+                    </div>
+                  </div>
+                ))}
+                {sellerStats.length === 0 && (
                   <p className="text-xs text-center py-6" style={{ color: '#A8A29E' }}>Sin datos en el período</p>
                 )}
               </div>
