@@ -17,6 +17,8 @@ export type Presentation = {
   activa: boolean
   orden: number
   created_at: string
+  /** Comisión vigente en COP por bolsa. null = sin tarifa definida (≠ 0). */
+  comision: number | null
 }
 
 export type TipoProducto = {

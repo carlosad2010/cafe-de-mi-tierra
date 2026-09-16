@@ -3,9 +3,8 @@
 import { useMemo, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { formatCOP } from '@/lib/utils'
-import { comisionUnitaria, extraerGramos } from '@/lib/comisiones'
 import { GenerarInformeModal } from './GenerarInformeModal'
-import { Download, FileSpreadsheet } from 'lucide-react'
+import { Download, FileSpreadsheet, AlertTriangle } from 'lucide-react'
 
 type Order = {
   id: string
@@ -13,7 +12,7 @@ type Order = {
   created_at: string
   total: number
   seller?: { id: string; full_name: string } | null
-  items: { product_presentation: string; quantity: number }[]
+  items: { product_presentation: string; quantity: number; comision_unitaria: number | null }[]
 }
 
 const COLORS = ['#8B5C2A', '#3B82F6', '#22C55E', '#EF4444', '#A855F7', '#F97316', '#14B8A6', '#EC4899']
@@ -66,7 +65,13 @@ function SectionCard({ title, action, children }: { title: string; action?: Reac
 
 const tooltipStyle = { borderRadius: '8px', border: '1px solid #E7E5E4', fontSize: 12, background: '#fff' }
 
-export function ComisionesClient({ orders }: { orders: Order[] }) {
+export function ComisionesClient({
+  orders,
+  presentacionesSinTarifa,
+}: {
+  orders: Order[]
+  presentacionesSinTarifa: string[]
+}) {
   const [period, setPeriod] = useState<'30d' | '90d' | '365d' | 'all' | 'custom'>('30d')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
@@ -118,16 +123,18 @@ export function ComisionesClient({ orders }: { orders: Order[] }) {
       }
 
       order.items.forEach(item => {
-        const unitaria = comisionUnitaria(item.product_presentation)
-        if (unitaria === null) return
-        const gramage = String(extraerGramos(item.product_presentation))
+        // Sin tarifa congelada la línea no aporta comisión; se reporta aparte
+        // en vez de estimarle un valor.
+        const unitaria = item.comision_unitaria
+        if (unitaria == null) return
+        const pres = item.product_presentation
 
         const commission = unitaria * item.quantity
-        if (!seller.presentations[gramage]) {
-          seller.presentations[gramage] = { units: 0, commission: 0, unitaria }
+        if (!seller.presentations[pres]) {
+          seller.presentations[pres] = { units: 0, commission: 0, unitaria }
         }
-        seller.presentations[gramage].units += item.quantity
-        seller.presentations[gramage].commission += commission
+        seller.presentations[pres].units += item.quantity
+        seller.presentations[pres].commission += commission
         seller.totalCommission += commission
         seller.totalUnits += item.quantity
       })
@@ -191,6 +198,24 @@ export function ComisionesClient({ orders }: { orders: Order[] }) {
         </div>
       </div>
 
+      {presentacionesSinTarifa.length > 0 && (
+        <div className="rounded-2xl border p-4 flex items-start gap-3"
+          style={{ background: '#FFFBEB', borderColor: '#FDE68A' }}>
+          <AlertTriangle size={16} style={{ color: '#92400E', flexShrink: 0, marginTop: 2 }} />
+          <div className="text-xs" style={{ color: '#92400E' }}>
+            <p className="font-semibold mb-0.5">
+              {presentacionesSinTarifa.length === 1 ? 'Una presentación activa no tiene comisión definida' : 'Hay presentaciones activas sin comisión definida'}
+              : {presentacionesSinTarifa.join(', ')}
+            </p>
+            <p>
+              Sus ventas liquidan en $0 y no aparecen en los totales de abajo. Define la tarifa
+              en Configuración › Presentaciones; las ventas ya registradas conservan la comisión
+              con la que se guardaron.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard label="Total comisiones" value={formatCOP(kpis.totalCommission)} sub={`${kpis.totalUnits} unidades vendidas`} accent="#8B5C2A" />
@@ -232,7 +257,7 @@ export function ComisionesClient({ orders }: { orders: Order[] }) {
           comisionesData.flatMap(s =>
             Object.entries(s.presentations).map(([gram, data]) => ({
               Vendedor: s.sellerName,
-              Presentación: `${gram}g`,
+              Presentación: gram,
               Unidades: data.units,
               'Comisión Total': data.commission,
               'Comisión Unitaria': data.unitaria,
@@ -260,7 +285,7 @@ export function ComisionesClient({ orders }: { orders: Order[] }) {
                         {s.sellerName}
                       </td>
                     )}
-                    <td className="px-4 py-2" style={{ color: '#78716C' }}>{gram}g</td>
+                    <td className="px-4 py-2" style={{ color: '#78716C' }}>{gram}</td>
                     <td className="px-4 py-2 font-medium" style={{ color: '#1C1917' }}>{data.units}</td>
                     <td className="px-4 py-2" style={{ color: '#8B5C2A' }}>{formatCOP(data.unitaria)}</td>
                     <td className="px-4 py-2 font-semibold" style={{ color: '#22C55E' }}>{formatCOP(data.commission)}</td>

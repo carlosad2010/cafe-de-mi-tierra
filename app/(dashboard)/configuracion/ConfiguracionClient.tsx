@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Presentation, TipoProducto, Configuracion, MetodoPago } from '@/lib/types'
+import { formatCOP } from '@/lib/utils'
 import { Plus, Pencil, Check, X, Coffee, Package, Building2, CreditCard } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────
@@ -13,6 +14,22 @@ type LookupItem = {
   created_at: string
   activa?: boolean
   activo?: boolean
+  comision?: number | null
+}
+
+/**
+ * Lee el campo de comisión del formulario.
+ *
+ * Vacío es un valor legítimo: significa "sin tarifa definida", que no es lo
+ * mismo que 0 ("no paga comisión"). El informe de liquidación trata ambos casos
+ * distinto, así que no se colapsan aquí.
+ */
+function parseComision(valor: string): { ok: true; valor: number | null } | { ok: false } {
+  const limpio = valor.trim()
+  if (!limpio) return { ok: true, valor: null }
+  const n = Number(limpio)
+  if (!Number.isFinite(n) || n < 0) return { ok: false }
+  return { ok: true, valor: n }
 }
 
 type Tab = 'presentaciones' | 'tipos' | 'metodos_pago' | 'negocio'
@@ -22,7 +39,7 @@ const TABS: { id: Tab; label: string; icon: React.ElementType; desc: string }[] 
     id: 'presentaciones',
     label: 'Presentaciones',
     icon: Package,
-    desc: 'Formatos disponibles para los productos (ej: 45g, 250g, 500g, 1kg).',
+    desc: 'Formatos disponibles para los productos (ej: 45g, 250g, 500g, 1kg). La comisión es el valor fijo en COP que gana el vendedor por cada bolsa de esa presentación; las ventas ya registradas conservan la comisión con la que se liquidaron.',
   },
   {
     id: 'tipos',
@@ -288,19 +305,23 @@ function LookupPanel({
   tableName,
   activeKey,
   description,
+  withComision = false,
 }: {
   initialItems: LookupItem[]
   tableName: string
   activeKey: 'activa' | 'activo'
   description: string
+  withComision?: boolean
 }) {
   const [items, setItems] = useState([...initialItems].sort((a, b) => a.orden - b.orden))
   const [editing, setEditing] = useState<string | null>(null)
   const [editNombre, setEditNombre] = useState('')
   const [editOrden, setEditOrden] = useState(0)
+  const [editComision, setEditComision] = useState('')
   const [adding, setAdding] = useState(false)
   const [newNombre, setNewNombre] = useState('')
   const [newOrden, setNewOrden] = useState(initialItems.length + 1)
+  const [newComision, setNewComision] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -319,21 +340,27 @@ function LookupPanel({
     setEditing(item.id)
     setEditNombre(item.nombre)
     setEditOrden(item.orden)
+    setEditComision(item.comision == null ? '' : String(item.comision))
     setError('')
   }
 
   async function saveEdit(id: string) {
     if (!editNombre.trim()) return
+
+    const cambios: Record<string, unknown> = { nombre: editNombre.trim(), orden: editOrden }
+    if (withComision) {
+      const parsed = parseComision(editComision)
+      if (!parsed.ok) { setError('La comisión debe ser un número mayor o igual a cero.'); return }
+      cambios.comision = parsed.valor
+    }
+
     setBusy(true)
     setError('')
     const supabase = createClient()
-    const { error: err } = await supabase
-      .from(tableName)
-      .update({ nombre: editNombre.trim(), orden: editOrden })
-      .eq('id', id)
+    const { error: err } = await supabase.from(tableName).update(cambios).eq('id', id)
     if (err) { setError(err.message); setBusy(false); return }
     setItems(prev =>
-      prev.map(i => i.id === id ? { ...i, nombre: editNombre.trim(), orden: editOrden } : i)
+      prev.map(i => i.id === id ? { ...i, ...cambios } as LookupItem : i)
         .sort((a, b) => a.orden - b.orden)
     )
     setEditing(null)
@@ -346,11 +373,17 @@ function LookupPanel({
     setError('')
     const supabase = createClient()
     const row: Record<string, unknown> = { nombre: newNombre.trim(), orden: newOrden, [activeKey]: true }
+    if (withComision) {
+      const parsed = parseComision(newComision)
+      if (!parsed.ok) { setError('La comisión debe ser un número mayor o igual a cero.'); setBusy(false); return }
+      row.comision = parsed.valor
+    }
     const { data, error: err } = await supabase.from(tableName).insert(row).select().single()
     if (err) { setError(err.message); setBusy(false); return }
     setItems(prev => [...prev, data as LookupItem].sort((a, b) => a.orden - b.orden))
     setAdding(false)
     setNewNombre('')
+    setNewComision('')
     setNewOrden(items.length + 2)
     setBusy(false)
   }
@@ -366,6 +399,7 @@ function LookupPanel({
             <tr>
               <th className="hidden sm:table-cell">Orden</th>
               <th>Nombre</th>
+              {withComision && <th>Comisión por bolsa</th>}
               <th>Estado</th>
               <th></th>
             </tr>
@@ -401,6 +435,30 @@ function LookupPanel({
                       <span className="capitalize">{item.nombre}</span>
                     )}
                   </td>
+                  {withComision && (
+                    <td>
+                      {isEd ? (
+                        <input
+                          type="number" min="0" step="0.01"
+                          value={editComision}
+                          onChange={e => setEditComision(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && saveEdit(item.id)}
+                          placeholder="Sin definir"
+                          className="border rounded-md px-2 py-1 text-sm outline-none w-32"
+                          style={{ borderColor: 'var(--primary)' }}
+                        />
+                      ) : item.comision == null ? (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                          style={{ background: '#fef9c3', color: '#92400e' }}>
+                          Sin definir
+                        </span>
+                      ) : (
+                        <span className="text-sm" style={{ color: 'var(--foreground)' }}>
+                          {formatCOP(item.comision)}
+                        </span>
+                      )}
+                    </td>
+                  )}
                   <td>
                     <button
                       onClick={() => toggleActive(item)}
@@ -456,6 +514,19 @@ function LookupPanel({
                     autoFocus
                   />
                 </td>
+                {withComision && (
+                  <td>
+                    <input
+                      type="number" min="0" step="0.01"
+                      value={newComision}
+                      onChange={e => setNewComision(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleAdd()}
+                      placeholder="Sin definir"
+                      className="border rounded-md px-2 py-1 text-sm outline-none w-32"
+                      style={{ borderColor: 'var(--primary)' }}
+                    />
+                  </td>
+                )}
                 <td />
                 <td>
                   <div className="flex gap-1">
@@ -651,6 +722,7 @@ export function ConfiguracionClient({
           tableName="presentations"
           activeKey="activa"
           description={TABS[0].desc}
+          withComision
         />
       )}
       {tab === 'tipos' && (

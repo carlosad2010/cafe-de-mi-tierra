@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import ExcelJS from 'exceljs'
-import { liquidar, TARIFAS, type LineaVenta } from '@/lib/comisiones'
+import { liquidar, type LineaVenta } from '@/lib/comisiones'
 
 const FECHA_RE = /^\d{4}-\d{2}-\d{2}$/
 
@@ -45,13 +45,19 @@ export async function POST(req: NextRequest) {
 
   // Solo pedidos completados: los reversados se anulan y se regeneran, así que
   // el filtro por estado ya evita contar dos veces la misma venta.
-  const { data: orders, error } = await supabase
-    .from('orders')
-    .select('order_number, created_at, customer:customers(full_name), seller:profiles(full_name), items:order_items(product_name, product_presentation, product_type, quantity, unit_price, subtotal)')
-    .eq('status', 'completado')
-    .gte('created_at', `${desde}T00:00:00`)
-    .lt('created_at', `${diaSiguiente(hasta)}T00:00:00`)
-    .order('order_number', { ascending: true })
+  const [{ data: orders, error }, { data: tarifas }] = await Promise.all([
+    supabase
+      .from('orders')
+      .select('order_number, created_at, customer:customers(full_name), seller:profiles(full_name), items:order_items(product_name, product_presentation, product_type, quantity, unit_price, subtotal, comision_unitaria)')
+      .eq('status', 'completado')
+      .gte('created_at', `${desde}T00:00:00`)
+      .lt('created_at', `${diaSiguiente(hasta)}T00:00:00`)
+      .order('order_number', { ascending: true }),
+    supabase
+      .from('presentations')
+      .select('nombre, comision, orden')
+      .order('orden'),
+  ])
 
   if (error) {
     return NextResponse.json({ error: 'No se pudieron leer las ventas' }, { status: 500 })
@@ -69,6 +75,7 @@ export async function POST(req: NextRequest) {
       cantidad: Number(i.quantity) || 0,
       precio_unitario: Number(i.unit_price) || 0,
       subtotal: Number(i.subtotal) || 0,
+      comision_unitaria: i.comision_unitaria == null ? null : Number(i.comision_unitaria),
     }))
   )
 
@@ -99,7 +106,7 @@ export async function POST(req: NextRequest) {
 
   resumen.addRow(['Criterios aplicados', '']).font = { bold: true }
   resumen.addRow(['Estado de pedidos', 'Solo "completado" (excluye cancelados y reversados)'])
-  resumen.addRow(['Comisión', 'Valor fijo en COP por bolsa, según gramaje de la presentación'])
+  resumen.addRow(['Comisión', 'Valor fijo en COP por bolsa, congelado al momento de la venta'])
   resumen.addRow([])
 
   resumen.addRow(['Advertencias', '']).font = { bold: true }
@@ -119,7 +126,7 @@ export async function POST(req: NextRequest) {
 
   resumen.addRow(['Fuentes', '']).font = { bold: true }
   resumen.addRow(['Ventas', 'Base de datos administrativa (Supabase)'])
-  resumen.addRow(['Tarifas', 'Google Drive «Recetas Generales» › Nueva Hoja de Costos › Comision Vendedor'])
+  resumen.addRow(['Comisión', 'La congelada en cada venta; las tarifas se administran en Configuración › Presentaciones'])
   resumen.addRow(['Generado', new Date().toISOString().slice(0, 16).replace('T', ' ')])
 
   // ── Hoja 2: Detalle de Ventas ──────────────────────────────────────────────
@@ -132,18 +139,15 @@ export async function POST(req: NextRequest) {
     { header: 'Producto',          key: 'producto', width: 26 },
     { header: 'Presentación',      key: 'pres',     width: 14 },
     { header: 'Tipo',              key: 'tipo',     width: 14 },
-    { header: 'Gramos',            key: 'gramos',   width: 9  },
     { header: 'Cantidad',          key: 'cant',     width: 10 },
     { header: 'Precio Unitario',   key: 'precio',   width: 15 },
     { header: 'Subtotal',          key: 'subtotal', width: 15 },
     { header: 'Comisión Unitaria', key: 'comUnit',  width: 17 },
     { header: 'Comisión Línea',    key: 'comLinea', width: 16 },
-    { header: 'Observación',       key: 'obs',      width: 38 },
+    { header: 'Observación',       key: 'obs',      width: 42 },
   ]
   detalle.getRow(1).font = { bold: true }
   detalle.views = [{ state: 'frozen', ySplit: 1 }]
-
-  const ultimaTarifa = TARIFAS.length + 1 // fila final de la tabla en 'Tarifas Comisión'
 
   liq.lineas.forEach(l => {
     const fila = detalle.addRow({
@@ -154,25 +158,22 @@ export async function POST(req: NextRequest) {
       producto: l.producto,
       pres: l.presentacion,
       tipo: l.tipo,
-      gramos: l.gramos ?? '',
       cant: l.cantidad,
       precio: l.precio_unitario,
       subtotal: l.subtotal,
-      obs: l.sinTarifa ? 'Sin tarifa de comisión definida para esta presentación' : '',
+      obs: l.sinTarifa ? 'Sin tarifa de comisión al momento de la venta: liquida en $0' : '',
     })
     const n = fila.number
 
-    // Fórmulas reales contra la hoja de tarifas: si cambia una tarifa, el
-    // archivo recalcula solo. Se guarda también el resultado para que el valor
-    // se vea sin abrir Excel.
-    fila.getCell('comUnit').value = {
-      formula: `IFERROR(INDEX('Tarifas Comisión'!$B$2:$B$${ultimaTarifa},MATCH(H${n},'Tarifas Comisión'!$A$2:$A$${ultimaTarifa},0)),0)`,
-      result: l.comisionUnitaria ?? 0,
-    }
-    fila.getCell('comLinea').value = {
-      formula: `I${n}*L${n}`,
-      result: l.comisionLinea,
-    }
+    // La comisión unitaria va como valor, no como fórmula contra la hoja de
+    // tarifas: es la que se congeló en la venta. Si se resolviera contra la
+    // tarifa vigente, reabrir el informe de un mes ya pagado después de un
+    // ajuste de tarifas daría cifras distintas a las que se pagaron.
+    fila.getCell('comUnit').value = l.comision_unitaria ?? 0
+
+    // La comisión de línea sí es fórmula: es aritmética dentro del archivo y
+    // deja ver de dónde sale el número.
+    fila.getCell('comLinea').value = { formula: `H${n}*K${n}`, result: l.comisionLinea }
 
     fila.getCell('precio').numFmt = MONEDA
     fila.getCell('subtotal').numFmt = MONEDA
@@ -190,10 +191,10 @@ export async function POST(req: NextRequest) {
     const primera = 2
     const ultima = liq.lineas.length + 1
     const totales = detalle.addRow({ obs: '' })
-    totales.getCell('cliente').value = 'TOTALES'
-    totales.getCell('cant').value    = { formula: `SUM(I${primera}:I${ultima})`, result: liq.lineas.reduce((s, l) => s + l.cantidad, 0) }
-    totales.getCell('subtotal').value = { formula: `SUM(K${primera}:K${ultima})`, result: liq.totalVentas }
-    totales.getCell('comLinea').value = { formula: `SUM(M${primera}:M${ultima})`, result: liq.totalComision }
+    totales.getCell('cliente').value  = 'TOTALES'
+    totales.getCell('cant').value     = { formula: `SUM(H${primera}:H${ultima})`, result: liq.lineas.reduce((s, l) => s + l.cantidad, 0) }
+    totales.getCell('subtotal').value = { formula: `SUM(J${primera}:J${ultima})`, result: liq.totalVentas }
+    totales.getCell('comLinea').value = { formula: `SUM(L${primera}:L${ultima})`, result: liq.totalComision }
     totales.font = { bold: true }
     totales.getCell('subtotal').numFmt = MONEDA
     totales.getCell('comLinea').numFmt = MONEDA
@@ -218,9 +219,9 @@ export async function POST(req: NextRequest) {
     const n = fila.number
     if (rangoDetalle) {
       const criterio = `'Detalle de Ventas'!$D$${rangoDetalle.desde}:$D$${rangoDetalle.hasta},A${n}`
-      fila.getCell('unidades').value = { formula: `SUMIF(${criterio},'Detalle de Ventas'!$I$${rangoDetalle.desde}:$I$${rangoDetalle.hasta})`, result: v.unidades }
-      fila.getCell('ventas').value   = { formula: `SUMIF(${criterio},'Detalle de Ventas'!$K$${rangoDetalle.desde}:$K$${rangoDetalle.hasta})`, result: v.ventas }
-      fila.getCell('comision').value = { formula: `SUMIF(${criterio},'Detalle de Ventas'!$M$${rangoDetalle.desde}:$M$${rangoDetalle.hasta})`, result: v.comision }
+      fila.getCell('unidades').value = { formula: `SUMIF(${criterio},'Detalle de Ventas'!$H$${rangoDetalle.desde}:$H$${rangoDetalle.hasta})`, result: v.unidades }
+      fila.getCell('ventas').value   = { formula: `SUMIF(${criterio},'Detalle de Ventas'!$J$${rangoDetalle.desde}:$J$${rangoDetalle.hasta})`, result: v.ventas }
+      fila.getCell('comision').value = { formula: `SUMIF(${criterio},'Detalle de Ventas'!$L$${rangoDetalle.desde}:$L$${rangoDetalle.hasta})`, result: v.comision }
     } else {
       fila.getCell('unidades').value = v.unidades
       fila.getCell('ventas').value   = v.ventas
@@ -242,24 +243,27 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Hoja 4: Tarifas Comisión ───────────────────────────────────────────────
-  const tarifas = wb.addWorksheet('Tarifas Comisión')
-  tarifas.columns = [
-    { header: 'Gramos',              key: 'gramos',   width: 12 },
-    { header: 'Comisión por bolsa',  key: 'comision', width: 20 },
-    { header: 'Presentación',        key: 'pres',     width: 16 },
+  const hojaTarifas = wb.addWorksheet('Tarifas Comisión')
+  hojaTarifas.columns = [
+    { header: 'Presentación',       key: 'pres',     width: 18 },
+    { header: 'Comisión por bolsa', key: 'comision', width: 20 },
   ]
-  tarifas.getRow(1).font = { bold: true }
-  TARIFAS.forEach(t => {
-    const fila = tarifas.addRow({
-      gramos: t.gramos,
-      comision: t.comision,
-      pres: t.gramos >= 1000 ? `${(t.gramos / 1000).toLocaleString('es-CO')} kg` : `${t.gramos} g`,
-    })
-    fila.getCell('comision').numFmt = '"$"#,##0.00'
-  })
-  tarifas.addRow([])
-  tarifas.addRow(['Fuente:', 'Google Drive «Recetas Generales» › Nueva Hoja de Costos › fila "Comision Vendedor"'])
-  tarifas.addRow(['Nota:', 'Editar una tarifa aquí recalcula todo el archivo al abrirlo en Excel.'])
+  hojaTarifas.getRow(1).font = { bold: true }
+
+  for (const t of (tarifas ?? [])) {
+    const valor = t.comision == null ? null : Number(t.comision)
+    const fila = hojaTarifas.addRow({ pres: t.nombre, comision: valor ?? 'Sin definir' })
+    if (valor == null) {
+      fila.eachCell(c => { c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF9C3' } } })
+    } else {
+      fila.getCell('comision').numFmt = '"$"#,##0.00'
+    }
+  }
+
+  hojaTarifas.addRow([])
+  hojaTarifas.addRow(['Nota:', 'Tarifas vigentes al momento de generar este informe.'])
+  hojaTarifas.addRow(['', 'La hoja Detalle usa la comisión congelada en cada venta, que puede diferir'])
+  hojaTarifas.addRow(['', 'si la tarifa se ajustó después. Se administran en Configuración › Presentaciones.'])
 
   const buffer = await wb.xlsx.writeBuffer()
   const nombre = `Informe_Comisiones_Ventas_${desde}_a_${hasta}.xlsx`
