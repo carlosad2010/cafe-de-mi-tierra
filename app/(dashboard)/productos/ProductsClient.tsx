@@ -111,6 +111,11 @@ export function ProductsClient({ initialProducts, presentations, tiposProducto }
   const margin2 = calcMargin(precio2V, costP)
   const profit2 = calcProfit(precio2V, costP)
 
+  // El color debe reflejar si hay margen real: en verde solo si es positivo.
+  // Antes era siempre verde, así que un precio igual o por debajo del costo
+  // (ganancia $0 o negativa) se veía igual de "sano" que un margen del 40%.
+  const marginColor = (v: number) => (v > 0 ? '#16a34a' : v < 0 ? '#dc2626' : '#78716C')
+
   const q = search.trim().toLowerCase()
   const filtered = !q ? products : products.filter(p =>
     [p.name, p.presentation?.nombre, p.tipo?.nombre].some(v => v?.toLowerCase().includes(q))
@@ -265,14 +270,14 @@ export function ProductsClient({ initialProducts, presentations, tiposProducto }
                 <div className="rounded-lg p-3 space-y-1 text-sm" style={{ background: 'var(--secondary)' }}>
                   {precio1V > 0 && (
                     <div className="flex gap-4">
-                      <span style={{ color: 'var(--muted-foreground)' }}>P1 ganancia: <strong style={{ color: '#16a34a' }}>{formatCOP(profit1)}</strong></span>
-                      <span style={{ color: 'var(--muted-foreground)' }}>Margen: <strong style={{ color: '#16a34a' }}>{margin1.toFixed(1)}%</strong></span>
+                      <span style={{ color: 'var(--muted-foreground)' }}>P1 ganancia: <strong style={{ color: marginColor(profit1) }}>{formatCOP(profit1)}</strong></span>
+                      <span style={{ color: 'var(--muted-foreground)' }}>Margen: <strong style={{ color: marginColor(margin1) }}>{margin1.toFixed(1)}%</strong></span>
                     </div>
                   )}
                   {precio2V > 0 && (
                     <div className="flex gap-4">
-                      <span style={{ color: 'var(--muted-foreground)' }}>P2 ganancia: <strong style={{ color: '#16a34a' }}>{formatCOP(profit2)}</strong></span>
-                      <span style={{ color: 'var(--muted-foreground)' }}>Margen: <strong style={{ color: '#16a34a' }}>{margin2.toFixed(1)}%</strong></span>
+                      <span style={{ color: 'var(--muted-foreground)' }}>P2 ganancia: <strong style={{ color: marginColor(profit2) }}>{formatCOP(profit2)}</strong></span>
+                      <span style={{ color: 'var(--muted-foreground)' }}>Margen: <strong style={{ color: marginColor(margin2) }}>{margin2.toFixed(1)}%</strong></span>
                     </div>
                   )}
                 </div>
