@@ -507,7 +507,7 @@ export function InvoicesClient({
             </div>
 
             <p className="text-xs mb-5 px-1" style={{ color: '#92400E' }}>
-              Esta operación es reversible: puedes volver a completar el pedido desde el módulo de Ventas.
+              Esta operación es reversible: puedes volver a completar el pedido desde el módulo de Pedidos.
             </p>
 
             <div className="flex gap-3">

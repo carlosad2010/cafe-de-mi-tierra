@@ -51,7 +51,7 @@ const TABS: { id: Tab; label: string; icon: React.ElementType; desc: string }[] 
     id: 'metodos_pago',
     label: 'Métodos de Pago',
     icon: CreditCard,
-    desc: 'Medios de pago aceptados — aparecen en el módulo de Ventas y al crear cajas.',
+    desc: 'Medios de pago aceptados — aparecen en el módulo de Pedidos y al crear cajas.',
   },
   {
     id: 'negocio',
@@ -153,7 +153,7 @@ function MetodosPagoPanel({ initialItems }: { initialItems: MetodoPago[] }) {
   return (
     <div className="max-w-2xl">
       <p className="text-sm mb-5" style={{ color: 'var(--muted-foreground)' }}>
-        Métodos de pago aceptados — aparecen en el módulo de Ventas y al crear cajas.
+        Métodos de pago aceptados — aparecen en el módulo de Pedidos y al crear cajas.
       </p>
 
       <div className="rounded-xl border" style={{ background: '#fff', borderColor: 'var(--border)', overflow: 'hidden' }}>

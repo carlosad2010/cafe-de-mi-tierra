@@ -46,7 +46,7 @@ Todo el panel vive bajo `app/(dashboard)/`, protegido por sesión de Supabase Au
 | Módulo | Descripción |
 |---|---|
 | `dashboard` | Vista general del negocio |
-| `ventas` | Registro y consulta de pedidos, con filtro por rango de fechas |
+| `pedidos` | Registro y consulta de pedidos, con filtro por rango de fechas |
 | `facturas` | Facturación y envío por correo (Resend) |
 | `clientes` | Gestión de clientes |
 | `productos` | Catálogo de productos |
