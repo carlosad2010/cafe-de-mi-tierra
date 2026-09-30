@@ -424,7 +424,7 @@ export function SalesClient({
       {/* Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">Ventas</h1>
+          <h1 className="page-title">Pedidos</h1>
           <p className="page-subtitle">
             {hasFilters
               ? `${total} pedido(s) coinciden con el filtro`

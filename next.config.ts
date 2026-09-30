@@ -65,6 +65,12 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // El módulo se llamaba "Ventas"; se renombró a "Pedidos" porque gestiona
+  // pedidos en cualquier estado, no solo ventas cerradas. Este redirect cubre
+  // bookmarks y links viejos a la ruta anterior.
+  async redirects() {
+    return [{ source: "/ventas", destination: "/pedidos", permanent: true }];
+  },
 };
 
 export default nextConfig;

@@ -41,7 +41,7 @@ const navGroups: NavGroup[] = [
   {
     label: 'Operación',
     items: [
-      { href: '/ventas',     label: 'Ventas',     icon: ShoppingCart, roles: TODOS },
+      { href: '/pedidos',    label: 'Pedidos',    icon: ShoppingCart, roles: TODOS },
       { href: '/clientes',   label: 'Clientes',   icon: Users,        roles: TODOS },
       { href: '/productos',  label: 'Productos',  icon: Package,      roles: TODOS },
       { href: '/inventario', label: 'Inventario', icon: Warehouse,    roles: TODOS },

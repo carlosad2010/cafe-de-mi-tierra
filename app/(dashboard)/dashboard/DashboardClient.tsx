@@ -219,7 +219,7 @@ export function DashboardClient({
           style={{ background: '#fff', boxShadow: '0 1px 12px rgba(0,0,0,0.06)' }}>
           <div className="px-5 py-4 flex items-center justify-between border-b" style={{ borderColor: '#F0EDE8' }}>
             <h2 className="text-sm font-semibold" style={{ color: '#1C1917' }}>Pedidos recientes</h2>
-            <Link href="/ventas"
+            <Link href="/pedidos"
               className="flex items-center gap-0.5 text-xs font-medium transition-all duration-150 hover:gap-1.5"
               style={{ color: '#8B5C2A' }}>
               Ver todos <ChevronRight size={13} />
@@ -325,7 +325,7 @@ export function DashboardClient({
       {/* ── Quick actions ───────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { href: '/ventas',    label: 'Nueva venta',   icon: ShoppingCart, color: '#8B5C2A', bg: '#FDF6EE' },
+          { href: '/pedidos',   label: 'Nuevo pedido',  icon: ShoppingCart, color: '#8B5C2A', bg: '#FDF6EE' },
           { href: '/clientes',  label: 'Clientes',      icon: Users,        color: '#3B82F6', bg: '#EFF6FF' },
           { href: '/productos', label: 'Productos',     icon: Package,      color: '#10B981', bg: '#F0FDF4' },
           { href: '/informes',  label: 'Informes',      icon: TrendingUp,   color: '#A855F7', bg: '#FAF5FF' },
