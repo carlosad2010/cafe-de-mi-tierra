@@ -85,7 +85,8 @@ jobs:
               data=json.dumps(payload).encode('utf-8'),
               headers={
                   'Authorization': f'Bearer {resend_key}',
-                  'Content-Type': 'application/json'
+                  'Content-Type': 'application/json',
+                  'User-Agent': 'cafe-de-mi-tierra-backup/1.0'
               }
           )
 
