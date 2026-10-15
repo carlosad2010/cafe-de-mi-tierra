@@ -3,9 +3,9 @@
 import { useEffect, useState, useTransition } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Order } from '@/lib/types'
-import { formatCOP, formatDate, formatDateTime, getWhatsAppLink, PAYMENT_METHODS, CUENTA_PAGO, escapeHtml } from '@/lib/utils'
-import { FileText, Send, MessageCircle, Eye, Download, RotateCcw, AlertTriangle, Package, Wallet, CheckCircle, ChevronDown, X } from 'lucide-react'
+import { Order, Configuracion } from '@/lib/types'
+import { formatCOP, formatDate, formatDateLarga, formatDateTime, getWhatsAppLink, montoEnLetras, PAYMENT_METHODS, CUENTA_PAGO, escapeHtml } from '@/lib/utils'
+import { FileText, Send, MessageCircle, Eye, Download, RotateCcw, AlertTriangle, Package, Wallet, CheckCircle, ChevronDown, X, Receipt } from 'lucide-react'
 import { useEscKey } from '@/lib/hooks/useEscKey'
 import { useCanWrite } from '@/lib/perfil-context'
 import { Pagination } from '@/components/ui/Pagination'
@@ -36,11 +36,25 @@ export function InvoicesClient({
     setSeed(initialOrders)
     setOrders(initialOrders)
   }
+  // Sin uso mientras el botón de "Enviar por correo" esté pausado (ver
+  // sendEmail más abajo) — se deja listo para cuando se reactive.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [sending, setSending]           = useState<string | null>(null)
   const [preview, setPreview]           = useState<Order | null>(null)
   const [confirmOrder, setConfirmOrder] = useState<Order | null>(null)
   const [reversando, setReversando]     = useState(false)
   const [successMsg, setSuccessMsg]     = useState('')
+
+  // ── Cuenta de cobro ─────────────────────────────────────────
+  const [config, setConfig]               = useState<Configuracion | null>(null)
+  const [ccOrder, setCcOrder]             = useState<Order | null>(null)
+  const [emitiendoCC, setEmitiendoCC]     = useState(false)
+  const [ccError, setCcError]             = useState('')
+
+  useEffect(() => {
+    createClient().from('configuracion').select('*').maybeSingle()
+      .then(({ data }) => setConfig(data))
+  }, [])
   // Texto del buscador: local para no perder el foco entre navegaciones
   const [search, setSearch]             = useState(query)
 
@@ -79,6 +93,10 @@ export function InvoicesClient({
   })
 
   // ── Email ────────────────────────────────────────────────────
+  // Botón deshabilitado más abajo mientras no haya dominio verificado en
+  // Resend (ver app/api/send-invoice/route.ts) — la función queda intacta,
+  // lista para reactivar sin tener que reescribirla.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async function sendEmail(order: Order) {
     const customer = (order as any).customer
     if (!customer?.email) { alert('Este cliente no tiene correo registrado'); return }
@@ -93,6 +111,41 @@ export function InvoicesClient({
       else alert('Error al enviar la factura')
     } catch { alert('Error de conexión') }
     setSending(null)
+  }
+
+  // ── Cuenta de cobro ──────────────────────────────────────────
+  // El envío por correo está en pausa (ver app/api/send-invoice/route.ts):
+  // en su lugar, emitir crea/reutiliza el registro congelado y el PDF se
+  // descarga directo vía GET /api/cuenta-cobro/[id]/pdf — nunca se manda.
+  async function emitirCuentaCobro() {
+    if (!ccOrder) return
+    setEmitiendoCC(true)
+    setCcError('')
+    try {
+      const res = await fetch('/api/cuenta-cobro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: ccOrder.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setCcError(data.error ?? 'Error al emitir la cuenta de cobro'); setEmitiendoCC(false); return }
+
+      // Refleja en la lista que ya quedó emitida, sin recargar la página.
+      setOrders(prev => prev.map(o => o.id === ccOrder.id ? { ...o, cuenta_cobro: data.cuentaCobro } : o))
+      setSuccessMsg(`Cuenta de cobro N.° ${data.cuentaCobro.numero} ${data.reutilizada ? '' : 'emitida y '}descargada`)
+      setTimeout(() => setSuccessMsg(''), 4000)
+      setCcOrder(null)
+
+      // Descarga nativa del navegador: una navegación real a la ruta GET
+      // (no fetch+blob) para que no haya que lidiar con memoria ni parsear
+      // el header de Content-Disposition a mano.
+      const a = document.createElement('a')
+      a.href = `/api/cuenta-cobro/${data.cuentaCobro.id}/pdf`
+      a.click()
+    } catch {
+      setCcError('Error de conexión')
+    }
+    setEmitiendoCC(false)
   }
 
   // ── WhatsApp ─────────────────────────────────────────────────
@@ -370,12 +423,15 @@ export function InvoicesClient({
                           className="btn-icon">
                           <Download size={14} style={{ color: 'var(--muted-foreground)' }} />
                         </button>
-                        {/* Enviar dispara un correo real al cliente, así que
-                            va del lado de escritura. Ver e imprimir no. */}
+                        {/* Envío por correo en pausa: el remitente de Resend
+                            todavía no tiene dominio propio verificado y no
+                            entrega a clientes reales (ver /api/send-invoice).
+                            Se deja visible pero deshabilitado, no oculto,
+                            para que quede claro que es algo pendiente de
+                            activar y no un botón que desapareció solo. */}
                         {customer?.email && canWrite && (
-                          <button onClick={() => sendEmail(order)} title="Enviar por correo"
-                            disabled={sending === order.id}
-                            className="p-1.5 rounded-lg hover:bg-blue-50 disabled:opacity-40">
+                          <button disabled title="Envío por correo en pausa: falta verificar un dominio propio en Resend"
+                            className="p-1.5 rounded-lg opacity-30 cursor-not-allowed">
                             <Send size={14} style={{ color: '#2563eb' }} />
                           </button>
                         )}
@@ -383,6 +439,18 @@ export function InvoicesClient({
                           <button onClick={() => sendWhatsApp(order)} title="Enviar por WhatsApp"
                             className="p-1.5 rounded-lg hover:bg-green-50">
                             <MessageCircle size={14} style={{ color: '#16a34a' }} />
+                          </button>
+                        )}
+                        {/* Cuenta de cobro: solo clientes institucionales (NIT).
+                            Emite (consume número) → del lado de escritura.
+                            No requiere correo: se descarga, no se envía. */}
+                        {customer?.document_type === 'NIT' && canWrite && (
+                          <button onClick={() => { setCcError(''); setCcOrder(order) }}
+                            title={order.cuenta_cobro
+                              ? `Descargar cuenta de cobro N.° ${order.cuenta_cobro.numero}`
+                              : 'Generar cuenta de cobro'}
+                            className="p-1.5 rounded-lg hover:bg-amber-50">
+                            <Receipt size={14} style={{ color: order.cuenta_cobro ? '#16a34a' : '#B45309' }} />
                           </button>
                         )}
                         {/* Reversar */}
@@ -528,6 +596,149 @@ export function InvoicesClient({
           </div>
         </div>
       )}
+
+      {/* ── Modal: cuenta de cobro ─────────────────────────────── */}
+      {ccOrder && (() => {
+        const yaEmitida = ccOrder.cuenta_cobro
+        const customer = (ccOrder as any).customer
+        const items: any[] = (ccOrder as any).items ?? []
+        const configListo = !!(config?.ciudad && config?.representante_legal_nombre && config?.representante_legal_documento)
+        const puedeConfirmar = yaEmitida || configListo
+
+        const datos = yaEmitida ? {
+          numero: yaEmitida.numero,
+          fecha: yaEmitida.fecha_emision,
+          ciudad: yaEmitida.ciudad_emision,
+          clienteNombre: yaEmitida.cliente_nombre,
+          clienteNit: yaEmitida.cliente_nit,
+          repNombre: yaEmitida.representante_nombre,
+          repDocumento: yaEmitida.representante_documento,
+          repFirmaUrl: yaEmitida.representante_firma_url,
+          objeto: yaEmitida.objeto,
+          items: yaEmitida.items,
+          monto: yaEmitida.monto,
+        } : {
+          numero: null,
+          fecha: new Date().toISOString(),
+          ciudad: config?.ciudad ?? '—',
+          clienteNombre: customer?.full_name ?? '',
+          clienteNit: customer?.document_number ?? '',
+          repNombre: config?.representante_legal_nombre ?? '—',
+          repDocumento: config?.representante_legal_documento ?? '—',
+          repFirmaUrl: config?.representante_legal_firma_url ?? null,
+          objeto: Array.from(new Set(items.map(i => i.product_name))).join(', '),
+          items: items.map(i => ({ product_name: i.product_name, quantity: i.quantity, unit_price: i.unit_price, subtotal: i.subtotal })),
+          monto: ccOrder.total,
+        }
+
+        return (
+          <div className="modal-overlay"
+            onClick={e => { if (e.target === e.currentTarget && !emitiendoCC) setCcOrder(null) }}>
+            <div className="modal-box modal-box-flush">
+              <CuentaCobroPreview {...datos} />
+              <div className="px-6 pb-6">
+                {!configListo && !yaEmitida && (
+                  <p className="text-xs mb-3 px-3 py-2 rounded-lg" style={{ background: '#FFFBEB', color: '#92400E' }}>
+                    Falta completar Ciudad y Representante legal en Configuración › Negocio antes de poder emitir.
+                  </p>
+                )}
+                {ccError && (
+                  <p className="text-xs mb-3 px-3 py-2 rounded-lg" style={{ background: '#fef2f2', color: '#dc2626' }}>{ccError}</p>
+                )}
+                <div className="flex gap-3">
+                  <button onClick={() => setCcOrder(null)} disabled={emitiendoCC} className="btn btn-secondary flex-1">
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={emitirCuentaCobro}
+                    disabled={emitiendoCC || !puedeConfirmar}
+                    className="btn btn-primary flex-1 disabled:opacity-60">
+                    {emitiendoCC ? 'Generando...' : yaEmitida ? 'Descargar de nuevo' : 'Confirmar y descargar'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+    </div>
+  )
+}
+
+// ── Cuenta de cobro preview ──────────────────────────────────────
+// Vista en pantalla, independiente del PDF real (lib/pdf/cuentaCobro.tsx),
+// igual que InvoicePreview/printPDF son dos representaciones separadas de
+// la misma factura. Solo para mostrar al usuario antes de confirmar.
+function CuentaCobroPreview({ numero, fecha, ciudad, clienteNombre, clienteNit, repNombre, repDocumento, repFirmaUrl, objeto, items, monto }: {
+  numero: number | null
+  fecha: string
+  ciudad: string
+  clienteNombre: string
+  clienteNit: string
+  repNombre: string
+  repDocumento: string
+  repFirmaUrl: string | null
+  objeto: string
+  items: { product_name: string; quantity: number; unit_price: number; subtotal: number }[]
+  monto: number
+}) {
+  return (
+    <div className="p-8">
+      <p className="text-xs mb-1" style={{ color: '#6b4423' }}>{ciudad}, {formatDateLarga(fecha)}</p>
+      <h2 className="text-center font-bold text-lg mb-6" style={{ color: '#8b5e3c' }}>
+        CUENTA DE COBRO N.° {numero != null ? String(numero).padStart(3, '0') : '(se asigna al enviar)'}
+      </h2>
+
+      <div className="text-center mb-5">
+        <p className="font-bold" style={{ color: '#2c1810' }}>{clienteNombre}</p>
+        <p className="text-sm" style={{ color: '#6b4423' }}>NIT {clienteNit}</p>
+        <p className="text-xs uppercase tracking-wide mt-2 mb-1" style={{ color: '#6b4423' }}>Debe a</p>
+        <p className="font-bold" style={{ color: '#2c1810' }}>{repNombre}</p>
+        <p className="text-sm" style={{ color: '#6b4423' }}>C.C. {repDocumento}</p>
+      </div>
+
+      <p className="text-sm mb-1" style={{ color: '#2c1810' }}>
+        La suma de: <strong>{montoEnLetras(monto)}</strong> ({formatCOP(monto)})
+      </p>
+      <p className="text-sm mb-5" style={{ color: '#2c1810' }}>Objeto: {objeto}</p>
+
+      <table className="w-full text-sm mb-5">
+        <thead>
+          <tr style={{ background: '#8b5e3c' }}>
+            <th className="py-2 px-2 text-left font-semibold text-white text-xs">Ítem</th>
+            <th className="py-2 px-2 text-center font-semibold text-white text-xs">Cant.</th>
+            <th className="py-2 px-2 text-right font-semibold text-white text-xs">Valor unitario</th>
+            <th className="py-2 px-2 text-right font-semibold text-white text-xs">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item, i) => (
+            <tr key={i} style={{ borderBottom: '1px solid #f5e8d8' }}>
+              <td className="py-2 px-2" style={{ color: '#2c1810' }}>{item.product_name}</td>
+              <td className="py-2 px-2 text-center" style={{ color: '#6b4423' }}>{item.quantity}</td>
+              <td className="py-2 px-2 text-right" style={{ color: '#6b4423' }}>{formatCOP(item.unit_price)}</td>
+              <td className="py-2 px-2 text-right font-medium" style={{ color: '#2c1810' }}>{formatCOP(item.subtotal)}</td>
+            </tr>
+          ))}
+          <tr style={{ background: '#fdf8f3' }}>
+            <td colSpan={3} className="py-2 px-2 text-right font-bold" style={{ color: '#2c1810' }}>Total</td>
+            <td className="py-2 px-2 text-right font-bold" style={{ color: '#8b5e3c' }}>{formatCOP(monto)}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p className="text-xs text-center rounded-xl p-3 mb-6" style={{ background: '#fdf8f3', border: '1px solid #e8ccab', color: '#6b4423' }}>
+        Si el pago es por transferencia, consignar en la Cuenta de {CUENTA_PAGO.tipo} No. {CUENTA_PAGO.numero} de {CUENTA_PAGO.banco}, de la cual soy titular.
+      </p>
+
+      <div>
+        {repFirmaUrl
+          ? /* eslint-disable-next-line @next/next/no-img-element -- firma subida por el usuario */
+            <img src={repFirmaUrl} alt="Firma" style={{ height: 50, marginBottom: 4 }} />
+          : <div style={{ borderTop: '1px solid #999', width: 180, marginBottom: 4 }} />}
+        <p className="font-bold text-sm" style={{ color: '#2c1810' }}>{repNombre}</p>
+        <p className="text-xs" style={{ color: '#6b4423' }}>C.C. {repDocumento}</p>
+      </div>
     </div>
   )
 }

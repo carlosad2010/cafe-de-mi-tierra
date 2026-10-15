@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import { NumerosALetras } from 'numero-a-letras'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -29,6 +30,38 @@ export function formatDate(date: string | Date): string {
     month: '2-digit',
     year: 'numeric',
   }).format(new Date(date))
+}
+
+/**
+ * "23 de septiembre de 2026" — para documentos formales (cuentas de cobro).
+ *
+ * `fecha_emision` en la BD es columna `date` (sin hora), así que llega como
+ * "2026-10-15" a secas. `new Date("2026-10-15")` la interpreta como
+ * medianoche UTC (así lo define el estándar ECMAScript para fechas sin
+ * hora) — y como Colombia es UTC-5, al formatear en hora local esa
+ * medianoche UTC cae en las 7pm del día ANTERIOR: se veía "14 de octubre"
+ * en vez de "15". Agregar 'T00:00:00' (sin 'Z') hace que se interprete como
+ * medianoche LOCAL, no UTC, y el día nunca se corre.
+ */
+export function formatDateLarga(date: string | Date): string {
+  const d = typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)
+    ? new Date(`${date}T00:00:00`)
+    : new Date(date)
+  return new Intl.DateTimeFormat('es-CO', {
+    day: 'numeric', month: 'long', year: 'numeric',
+  }).format(d)
+}
+
+/**
+ * "Ciento setenta y siete mil pesos" — numero-a-letras solo soporta pesos
+ * mexicanos con sufijo de centavos ("00/100 M.N."); se descarta esa parte
+ * porque acá se cobra en pesos enteros y el formato local no la usa.
+ */
+export function montoEnLetras(monto: number): string {
+  const texto = NumerosALetras(Math.round(monto))
+    .replace(/\s+\d{2}\/100\s*M\.N\.$/i, '')
+    .trim()
+  return texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase()
 }
 
 export function formatDateTime(date: string | Date): string {

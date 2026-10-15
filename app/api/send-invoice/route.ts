@@ -5,7 +5,20 @@ import { formatCOP, formatDate, PAYMENT_METHODS, escapeHtml } from '@/lib/utils'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+// PAUSADO (15/oct/2026): el remitente usado acá (onboarding@resend.dev) es
+// el sandbox de Resend, que SOLO entrega al dueño de la cuenta — nunca a un
+// cliente real. Confirmado contra la API de Resend, no es un bug de este
+// código. Reactivar cuando haya un dominio propio verificado en Resend: solo
+// hay que quitar este bloque y cambiar FROM más abajo al remitente real.
+const PAUSADO = true
+
 export async function POST(req: NextRequest) {
+  if (PAUSADO) {
+    return NextResponse.json(
+      { error: 'El envío de facturas por correo está en pausa: falta verificar un dominio propio en Resend.' },
+      { status: 503 })
+  }
+
   const resend = new Resend(process.env.RESEND_API_KEY)
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

@@ -37,6 +37,10 @@ export type Configuracion = {
   telefono: string | null
   email: string | null
   mensaje_factura: string | null
+  ciudad: string | null
+  representante_legal_nombre: string | null
+  representante_legal_documento: string | null
+  representante_legal_firma_url: string | null
   updated_at: string
 }
 
@@ -108,6 +112,35 @@ export type Order = {
   customer?: Customer
   seller?: Profile
   items?: OrderItem[]
+  cuenta_cobro?: CuentaCobro | null
+}
+
+/**
+ * Documento de "Cuenta de cobro" institucional, numerado y firmado por el
+ * representante legal. NO confundir con CuentaCobrar (cartera/cuentas por
+ * cobrar) — son conceptos de negocio distintos que solo comparten nombre.
+ * Todo acá es un snapshot congelado al emitir, no datos en vivo.
+ */
+export type CuentaCobro = {
+  id: string
+  numero: number
+  order_id: string
+  customer_id: string
+  cliente_nombre: string
+  cliente_nit: string
+  cliente_direccion: string | null
+  cliente_ciudad: string | null
+  objeto: string
+  monto: number
+  items: { product_name: string; quantity: number; unit_price: number; subtotal: number }[]
+  ciudad_emision: string
+  representante_nombre: string
+  representante_documento: string
+  representante_firma_url: string | null
+  fecha_emision: string
+  created_by: string | null
+  email_sent_at: string | null
+  created_at: string
 }
 
 export type OrderItem = {

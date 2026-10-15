@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Presentation, TipoProducto, Configuracion, MetodoPago } from '@/lib/types'
 import { formatCOP } from '@/lib/utils'
-import { Plus, Pencil, Check, X, Coffee, Package, Building2, CreditCard } from 'lucide-react'
+import { Plus, Pencil, Check, X, Coffee, Package, Building2, CreditCard, Upload, Trash2 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────
 type LookupItem = {
@@ -571,6 +571,8 @@ function LookupPanel({
 }
 
 // ─── Negocio panel ────────────────────────────────────────────
+const FIRMA_MAX_BYTES = 2 * 1024 * 1024 // 2MB: es una firma, no una foto
+
 function NegocioPanel({ initialConfig }: { initialConfig: Configuracion | null }) {
   const [form, setForm] = useState({
     nombre_negocio: initialConfig?.nombre_negocio ?? '',
@@ -578,11 +580,63 @@ function NegocioPanel({ initialConfig }: { initialConfig: Configuracion | null }
     telefono:       initialConfig?.telefono ?? '',
     email:          initialConfig?.email ?? '',
     direccion:      initialConfig?.direccion ?? '',
+    ciudad:         initialConfig?.ciudad ?? '',
     mensaje_factura: initialConfig?.mensaje_factura ?? '',
+    representante_legal_nombre:     initialConfig?.representante_legal_nombre ?? '',
+    representante_legal_documento:  initialConfig?.representante_legal_documento ?? '',
   })
+  const [firmaUrl, setFirmaUrl]   = useState(initialConfig?.representante_legal_firma_url ?? '')
+  const [subiendoFirma, setSubiendoFirma] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
+
+  async function handleFirmaChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // permite volver a elegir el mismo archivo si falla
+    if (!file) return
+    if (!file.type.startsWith('image/')) { setError('La firma debe ser una imagen (PNG o JPG)'); return }
+    if (file.size > FIRMA_MAX_BYTES) { setError('La imagen de la firma no puede superar 2MB'); return }
+
+    setError('')
+    setSubiendoFirma(true)
+    const supabase = createClient()
+    // Ruta fija SIN extensión: lo que determina cómo se interpreta la imagen
+    // es el Content-Type que mandamos explícito, no la extensión en la URL.
+    // Si la ruta incluyera la extensión del archivo subido, cambiar de un
+    // PNG a un JPG (o viceversa) crearía un segundo objeto en el bucket en
+    // vez de reemplazar al anterior, dejando el viejo como basura residual.
+    // Con una sola ruta fija, upsert siempre pisa el mismo objeto.
+    const path = 'firma-representante-legal'
+    const { error: upErr } = await supabase.storage
+      .from('negocio')
+      .upload(path, file, { upsert: true, cacheControl: '3600', contentType: file.type })
+
+    if (upErr) { setError(upErr.message); setSubiendoFirma(false); return }
+
+    // Limpieza de transición: firmas subidas antes de este cambio quedaron
+    // con extensión en el nombre (firma-representante-legal.png/.jpg). Se
+    // borran una vez que ya existe el reemplazo en la ruta fija nueva, para
+    // no dejarlas huérfanas en el bucket. No pasa nada si no existen.
+    await supabase.storage.from('negocio').remove([
+      'firma-representante-legal.png',
+      'firma-representante-legal.jpg',
+      'firma-representante-legal.jpeg',
+    ])
+
+    const { data } = supabase.storage.from('negocio').getPublicUrl(path)
+    // Cache-bust: la URL pública es siempre la misma ruta, así que sin esto
+    // el navegador seguiría mostrando la firma vieja tras reemplazarla.
+    setFirmaUrl(`${data.publicUrl}?v=${Date.now()}`)
+    setSubiendoFirma(false)
+  }
+
+  function handleQuitarFirma() {
+    // Solo limpia el campo local: el archivo en Storage queda (no hay botón
+    // de borrado destructivo acá), y se reemplaza solo si se sube uno nuevo.
+    // Hay que confirmar con "Guardar cambios" para que se desvincule de verdad.
+    setFirmaUrl('')
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -595,7 +649,11 @@ function NegocioPanel({ initialConfig }: { initialConfig: Configuracion | null }
       telefono:        form.telefono || null,
       email:           form.email || null,
       direccion:       form.direccion || null,
+      ciudad:          form.ciudad || null,
       mensaje_factura: form.mensaje_factura || null,
+      representante_legal_nombre:    form.representante_legal_nombre || null,
+      representante_legal_documento: form.representante_legal_documento || null,
+      representante_legal_firma_url: firmaUrl || null,
       updated_at:      new Date().toISOString(),
     }
 
@@ -638,7 +696,10 @@ function NegocioPanel({ initialConfig }: { initialConfig: Configuracion | null }
       </div>
 
       {f('Correo electrónico', 'email', { type: 'email', placeholder: 'contacto@cafemicierra.com' })}
-      {f('Dirección', 'direccion', { placeholder: 'Calle 1 # 2-3, Bogotá' })}
+      <div className="grid grid-cols-2 gap-3">
+        {f('Dirección', 'direccion', { placeholder: 'Calle 1 # 2-3' })}
+        {f('Ciudad', 'ciudad', { placeholder: 'El Peñol' })}
+      </div>
 
       <div>
         <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--foreground)' }}>
@@ -650,6 +711,54 @@ function NegocioPanel({ initialConfig }: { initialConfig: Configuracion | null }
           placeholder="Gracias por su compra. ¡Vuelva pronto!"
           className="input-field resize-none" rows={2}
         />
+      </div>
+
+      <div className="pt-2 border-t" style={{ borderColor: 'var(--border)' }}>
+        <p className="text-sm font-medium mb-1" style={{ color: 'var(--foreground)' }}>Representante legal</p>
+        <p className="text-xs mb-3" style={{ color: 'var(--muted-foreground)' }}>
+          Firma las cuentas de cobro que se emiten a clientes institucionales desde el módulo de Facturas.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        {f('Nombre completo', 'representante_legal_nombre', { placeholder: 'Nombre y apellidos' })}
+        {f('Cédula', 'representante_legal_documento', { placeholder: '1.234.567.890' })}
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--foreground)' }}>Firma</label>
+        <div className="flex items-center gap-4 p-4 rounded-xl"
+          style={{ border: '1.5px dashed var(--border)', background: 'var(--secondary)' }}>
+          <div className="flex items-center justify-center shrink-0 rounded-lg overflow-hidden"
+            style={{ width: 96, height: 64, background: '#fff', border: '1px solid var(--border)' }}>
+            {firmaUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- imagen subida por el usuario, no un asset del build
+              <img src={firmaUrl} alt="Firma del representante legal" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+            ) : (
+              <span className="text-xs text-center px-1" style={{ color: 'var(--muted-foreground)' }}>Sin firma</span>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-1.5 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <label className={`btn btn-secondary btn-sm ${subiendoFirma ? 'pointer-events-none opacity-60' : 'cursor-pointer'}`}>
+                <Upload size={13} />
+                {subiendoFirma ? 'Subiendo…' : firmaUrl ? 'Cambiar firma' : 'Subir firma'}
+                <input
+                  type="file" accept="image/png,image/jpeg"
+                  onChange={handleFirmaChange} disabled={subiendoFirma}
+                  className="sr-only"
+                />
+              </label>
+              {firmaUrl && !subiendoFirma && (
+                <button type="button" onClick={handleQuitarFirma} className="btn btn-ghost btn-sm" style={{ color: '#dc2626' }}>
+                  <Trash2 size={13} /> Quitar
+                </button>
+              )}
+            </div>
+            <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>PNG o JPG, máximo 2MB. Fondo transparente se ve mejor en el PDF.</p>
+          </div>
+        </div>
       </div>
 
       {error && (

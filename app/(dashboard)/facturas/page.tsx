@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 const PAGE_SIZE = 25
 
 const ORDER_SELECT =
-  '*, customer:customers(full_name, phone, email, address, city, document_type, document_number), seller:profiles(full_name), items:order_items(*, product:products(name, presentation:presentations(nombre), tipo:tipos_producto(nombre)))'
+  '*, customer:customers(full_name, phone, email, address, city, document_type, document_number), seller:profiles(full_name), items:order_items(*, product:products(name, presentation:presentations(nombre), tipo:tipos_producto(nombre))), cuenta_cobro:cuentas_cobro(*)'
 
 /** UUID imposible: fuerza cero resultados cuando la búsqueda no encuentra clientes. */
 const NO_MATCH = '00000000-0000-0000-0000-000000000000'
