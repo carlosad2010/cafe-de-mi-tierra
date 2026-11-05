@@ -206,8 +206,12 @@ export function CuentasCobrarClient({
     ))
     setFacturarDesc('0')
     setIdemKey(crypto.randomUUID())
-    setMetodoPago(metodosPago[0]?.nombre ?? '')
-    setCajaId(cajas[0]?.id ?? '')
+    const metodoInicial = metodosPago[0]?.nombre ?? ''
+    setMetodoPago(metodoInicial)
+    const cajaInicial = metodoInicial.toLowerCase() === 'efectivo'
+      ? cajas.find(c => c.tipo === 'efectivo') ?? cajas[0]
+      : cajas[0]
+    setCajaId(cajaInicial?.id ?? '')
     setError('')
   }
 
@@ -641,7 +645,16 @@ export function CuentasCobrarClient({
             </Field>
 
             <Field label="Método de pago usado">
-              <select value={metodoPago} onChange={e => setMetodoPago(e.target.value)} className="input-field">
+              <select value={metodoPago} onChange={e => {
+                const nuevo = e.target.value
+                setMetodoPago(nuevo)
+                // Efectivo entra a la caja de efectivo por defecto; el resto
+                // conserva la caja que ya estaba elegida.
+                if (nuevo.toLowerCase() === 'efectivo') {
+                  const cajaEfectivo = cajas.find(c => c.tipo === 'efectivo')
+                  if (cajaEfectivo) setCajaId(cajaEfectivo.id)
+                }
+              }} className="input-field">
                 {metodosPago.map(m => <option key={m.id} value={m.nombre}>{m.nombre}</option>)}
               </select>
             </Field>
